@@ -65,6 +65,7 @@ def parse_log():
             gpu_step_fwd = False
             xpu_step_fwd = False
             table = pt.PrettyTable(["Module", "gpu", "xpu", "diff"])
+            summary = {}
 
             while gpu_index < gpu_cost_list_len:
                 gpu_cost_tuple = gpu_cost_list[gpu_index]
@@ -78,6 +79,11 @@ def parse_log():
                         table.add_row(
                             [module_name, gpu_data, xpu_data, xpu_data - gpu_data]
                         )
+                        # if summary.has_key(module_name):
+                        if module_name in summary.keys():
+                            summary[module_name] += xpu_data - gpu_data
+                        else:
+                            summary[module_name] = xpu_data - gpu_data
                         if gpu_index < gpu_cost_list_len:
                             gpu_index += 1
                         if xpu_index < xpu_cost_list_len:
@@ -97,3 +103,10 @@ def parse_log():
                     if gpu_index < gpu_cost_list_len:
                         gpu_index += 1
             print(table)
+
+            sum_table = pt.PrettyTable(["Module", "total cost"])
+            for key in summary.keys():
+                sum_table.add_row([key, summary[key]])
+
+                # print(key, summary[key])
+            print(sum_table)

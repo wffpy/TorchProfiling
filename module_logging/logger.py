@@ -87,7 +87,12 @@ class PerformanceLogger(TorchDispatchMode):
             stream.record_event(event)
             event.synchronize()
             duration = start_event.elapsed_time(event)
-            if len(args) > 0 and output.data_ptr() == args[0].data_ptr():
+            if (
+                torch.is_tensor(output)
+                and len(args) > 0
+                and torch.is_tensor(args[0])
+                and output.data_ptr() == args[0].data_ptr()
+            ):
                 duration = 0
             print("[CUDA_PROF]: {}".format(duration))
         else:
