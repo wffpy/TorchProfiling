@@ -200,23 +200,20 @@ def parse_one_log(log_file_path):
     return table, table2, table3
 
 
-def parse_log(log_path):
+def parse_log(log_path, print_table=True):
     """
     Args:
-        log_file_path: the path of log file
-        gen_csv: the path of csv file to save
-
+        log_path: the path of log file
+        print_table: whether to print table or not
     Function:
     analysis the log file generated with the following two environments:
         1. export XPURT_DISPATCH_MODE=PROFILING
         2. export XPUAPI_DEBUG=0x1001
-
     return:
-        None
-
     """
 
     table, table1, table2 = parse_one_log(log_path)
-    print(table)
-    print(table1)
-    print(table2)
+    if print_table:
+        print(table)
+        print(table1)
+        print(table2)

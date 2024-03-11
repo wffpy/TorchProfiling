@@ -27,6 +27,8 @@ def parse_one_log(log_file_path):
     total_iteration_time = 0
     module_list = []
     module_total_kernel_consumed = 0
+    module_part_counter_dist = {}
+    module_cost_list = []
     for line in lines:
         if not iteration_begin:
             if "iteration" in line and "learning" in line and "loss" in line:
@@ -41,7 +43,6 @@ def parse_one_log(log_file_path):
                 print(line)
                 print(">>>>>>>>>>>>end a collection iteration")
                 break
-        # print(line)
 
         if line.startswith("[BEGIN FORWARD]:") or line.startswith("[BEGINE BACKWARD]"):
             if len(module_list) > 0 and module_total_kernel_consumed > 0:
@@ -52,8 +53,18 @@ def parse_one_log(log_file_path):
                     "MODULE TOTAL TIME": module_total_kernel_consumed,
                 }
                 table_data.append(data)
+                outer_module_name = module_list[-1]
+                block_name = (
+                    outer_module_name
+                    + "_"
+                    + str(module_part_counter_dist[outer_module_name])
+                )
+                d_t = (block_name, module_total_kernel_consumed)
+                module_cost_list.append(d_t)
 
-            module_list.append(line.rstrip("\n").split(":")[-1])
+            module_name = line.rstrip("\n").split(":")[-1]
+            module_list.append(module_name)
+            module_part_counter_dist[module_name] = 0
             module_total_kernel_consumed = 0
 
         if line.startswith("[END FORWARD]:") or line.startswith("[END BACKWARD]"):
@@ -64,11 +75,19 @@ def parse_one_log(log_file_path):
                 "MODULE TOTAL TIME": module_total_kernel_consumed,
             }
             table_data.append(data)
+            module_name = module_list[-1]
+            block_name = module_name + "_" + str(module_part_counter_dist[module_name])
+            d_t = (block_name, module_total_kernel_consumed)
+            module_cost_list.append(d_t)
+
             module_total_kernel_consumed = 0
 
             module_name = line.rstrip("\n").split(":")[-1]
             if module_name == module_list[-1]:
+                del module_part_counter_dist[module_name]
                 module_list.pop()
+                if len(module_list) > 0:
+                    module_part_counter_dist[module_list[-1]] += 1
             else:
                 raise Exception("not find the module name in module list")
 
@@ -157,22 +176,23 @@ def parse_one_log(log_file_path):
     table3 = pt.PrettyTable(["TOTAL TIME"])
     table3.add_row([total_iteration_time])
 
-    return table, table2, table3
+    return table, table2, table3, module_cost_list
 
 
-def parse_log(log_path):
+def parse_log(log_path, print_table=True):
     """
     Args:
-        log_file_path: the path of log file
-        gen_csv: the path of csv file to save
-
+        log_path: the path of log file
+        print_table: whether to print table or not
     return:
-        None
     """
 
     print("log_path: {}".format(log_path))
-    table, table1, table2 = parse_one_log(log_path)
+    table, table1, table2, cost_list = parse_one_log(log_path)
     print("print table: ")
-    print(table)
-    print(table1)
-    print(table2)
+    if print_table:
+        print(table)
+        # print(table1)
+        print(table2)
+
+    return cost_list
