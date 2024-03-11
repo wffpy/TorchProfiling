@@ -1,9 +1,11 @@
 # from inspect import ArgSpec
 # import sys
 import os.path as osp
+
 # import pandas as pd
 import re
 import prettytable as pt
+
 # import pathlib
 
 
@@ -50,7 +52,7 @@ def parse_one_log(log_file_path):
             if len(module_list) > 0 and module_total_kernel_consumed > 0:
                 data = {
                     "Module": "",
-                    "Name":  "",
+                    "Name": "",
                     "TOTAL TIME": "",
                     "MODULE TOTAL TIME": module_total_kernel_consumed,
                 }
@@ -62,13 +64,13 @@ def parse_one_log(log_file_path):
         if line.startswith("[END FORWARD]:") or line.startswith("[END BACKWARD]"):
             data = {
                 "Module": "",
-                "Name":  "",
+                "Name": "",
                 "TOTAL TIME": "",
                 "MODULE TOTAL TIME": module_total_kernel_consumed,
             }
             table_data.append(data)
             module_total_kernel_consumed = 0
-            
+
             module_name = line.rstrip("\n").split(":")[-1]
             if module_name == module_list[-1]:
                 module_list.pop()

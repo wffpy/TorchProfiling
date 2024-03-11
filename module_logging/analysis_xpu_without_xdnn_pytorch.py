@@ -47,7 +47,7 @@ def parse_one_log(log_file_path):
             if len(module_list) > 0 and module_total_kernel_consumed > 0:
                 data = {
                     "Module": "",
-                    "Name":  "",
+                    "Name": "",
                     "TOTAL TIME": "",
                     "MODULE TOTAL TIME": module_total_kernel_consumed,
                 }
@@ -59,7 +59,7 @@ def parse_one_log(log_file_path):
         if line.startswith("[END FORWARD]:") or line.startswith("[END BACKWARD]"):
             data = {
                 "Module": "",
-                "Name":  "",
+                "Name": "",
                 "TOTAL TIME": "",
                 "MODULE TOTAL TIME": module_total_kernel_consumed,
             }
@@ -110,7 +110,7 @@ def parse_one_log(log_file_path):
             collecting = False
             continue
 
-        #if line.startswith("[CUDA_PROF]"):
+        # if line.startswith("[CUDA_PROF]"):
         if line.startswith("[XPURT_PROF]"):
             strs = line.split(" ")
 
@@ -121,16 +121,15 @@ def parse_one_log(log_file_path):
             module_total_kernel_consumed += time
 
     print("==================================")
+
     # sort table_date
     def take_total_time(data):
         """get the total time of each op"""
         return data["TOTAL TIME"]
-    
+
     print("table size: {}".format(len(table_data)))
 
-    table = pt.PrettyTable(
-        ["Module", "Name", "TOTAL TIME", "MODULE TOTAL TIME"]
-    )
+    table = pt.PrettyTable(["Module", "Name", "TOTAL TIME", "MODULE TOTAL TIME"])
     for data in table_data:
         table.add_row(
             [
@@ -140,7 +139,7 @@ def parse_one_log(log_file_path):
                 data["MODULE TOTAL TIME"],
             ]
         )
-    
+
     print("construct table 2: ")
 
     summarize_table_data = []

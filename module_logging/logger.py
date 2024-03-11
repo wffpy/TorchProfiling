@@ -4,16 +4,17 @@ import time
 
 MODULE_COUNTER = 0
 
+
 def get_module_index():
     global MODULE_COUNTER
     MODULE_COUNTER += 1
     return MODULE_COUNTER
 
+
 class PerformanceLogger(TorchDispatchMode):
     """
     insert delimiters before and and after op execution
     """
-
 
     def __init__(self, gpu=False, model=None) -> None:
         super().__init__()
@@ -64,7 +65,6 @@ class PerformanceLogger(TorchDispatchMode):
         module.register_full_backward_pre_hook(self.pre_backward_hook_wrapper(name))
         module.register_full_backward_hook(self.post_backward_hook_wrapper(name))
 
-
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
@@ -74,7 +74,7 @@ class PerformanceLogger(TorchDispatchMode):
             # get device index and stream
             device_index = torch.cuda.current_device()
             device = torch.device("cuda:" + str(device_index))
-            stream = torch.cuda.current_stream(device) 
+            stream = torch.cuda.current_stream(device)
             # end event
             event = torch.cuda.Event(enable_timing=True)
             # start event
@@ -87,13 +87,16 @@ class PerformanceLogger(TorchDispatchMode):
             stream.record_event(event)
             event.synchronize()
             duration = start_event.elapsed_time(event)
+            if len(args) > 0 and output.is_view_of(args[0]):
+                duration = 0
             print("[CUDA_PROF]: {}".format(duration))
         else:
             import os
+
             print("[PROCESS ID]: {}".format(os.getpid()))
             # call op
             output = op(*args, **kwargs)
-            
+
         print("[END_SYMBOL]: {}".format(str(op)))
         return output
 
@@ -117,5 +120,3 @@ class PerformanceLogger(TorchDispatchMode):
     #     print("DURATION: {}".format(duration))
     #     print("[END_SYMBOL]: {} ns".format(str(op)))
     #     return output
-
-
