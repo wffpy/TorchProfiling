@@ -1,5 +1,12 @@
- python setup.py sdist bdist_wheel
+echo "=========begin build whl package=============="
+python setup.py sdist bdist_wheel
 
- pip uninstall moudle_logging
+echo "=========Try to uninstall origin package=============="
 
- pip install dist/module_logging-1.0.0-py3-none-any.whl
+echo -e "Y" | pip uninstall module_logging
+
+echo "=========install new package=============="
+pip install dist/module_logging-1.0.0-py3-none-any.whl
+
+echo "Done !"
+# bcecmd bos cp dist/module_logging-1.0.0-py3-none-any.whl  bos:/klx-pytorch-work-bd/tmp/fangfei/

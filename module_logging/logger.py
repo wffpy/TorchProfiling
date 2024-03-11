@@ -87,7 +87,7 @@ class PerformanceLogger(TorchDispatchMode):
             stream.record_event(event)
             event.synchronize()
             duration = start_event.elapsed_time(event)
-            if len(args) > 0 and output.is_view_of(args[0]):
+            if len(args) > 0 and output.data_ptr() == args[0].data_ptr():
                 duration = 0
             print("[CUDA_PROF]: {}".format(duration))
         else:
@@ -99,24 +99,3 @@ class PerformanceLogger(TorchDispatchMode):
 
         print("[END_SYMBOL]: {}".format(str(op)))
         return output
-
-    # def __torch_dispatch__(self, op, types, args=(), kwargs=None):
-    #     if kwargs is None:
-    #         kwargs = {}
-    #     #  insert pre-op delimiter
-    #     print("[START_SYMBOL]: {}".format(str(op)))
-    #     # start_time = time.time_ns()
-    #     stream = torch.cuda.current_stream()
-    #     event = torch.cuda.Event(enable_timing=True)
-    #     start_event = torch.cuda.Event(enable_timing=True)
-    #     stream.record_event(start_event)
-    #     output = op(*args, **kwargs)
-    #     stream.record_event(event)
-    #     event.synchronize()
-    #     duration = start_event.elapsed_time(event)
-    #     # end_time = time.time_ns()
-    #     # duration = end_time - start_time
-    #     #  insert post-op delimiter
-    #     print("DURATION: {}".format(duration))
-    #     print("[END_SYMBOL]: {} ns".format(str(op)))
-    #     return output
