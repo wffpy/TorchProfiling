@@ -91,11 +91,16 @@ def parse_log():
                         gpu_step_fwd = False
                         xpu_step_fwd = False
                     else:
-                        gpu_module_name = gpu_cost_tuple[0]
-                        gpu_data = gpu_cost_tuple[1]
-                        table.add_row([gpu_module_name, gpu_data, 0, 0])
-                        if gpu_index < gpu_cost_list_len:
+                        if gpu_cost_list[gpu_index + 1][0] == xpu_cost_tuple[0]:
                             gpu_index += 1
+                        elif gpu_cost_tuple[0] == xpu_cost_list[xpu_index + 1][0]:
+                            xpu_index += 1
+                        else:
+                            gpu_module_name = gpu_cost_tuple[0]
+                            gpu_data = gpu_cost_tuple[1]
+                            table.add_row([gpu_module_name, gpu_data, 0, 0])
+                            if gpu_index < gpu_cost_list_len:
+                                gpu_index += 1
                 else:
                     gpu_module_name = gpu_cost_tuple[0]
                     gpu_data = gpu_cost_tuple[1]
@@ -104,9 +109,11 @@ def parse_log():
                         gpu_index += 1
             print(table)
 
+            summary = sorted(summary.items(), key=lambda x: x[1], reverse=True)
             sum_table = pt.PrettyTable(["Module", "total cost"])
-            for key in summary.keys():
-                sum_table.add_row([key, summary[key]])
+            # for key in summary.keys():
+            for elem in summary:
+                sum_table.add_row([elem[0], elem[1]])
 
                 # print(key, summary[key])
             print(sum_table)

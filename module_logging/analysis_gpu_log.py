@@ -35,6 +35,7 @@ def parse_one_log(log_file_path):
     module_total_kernel_consumed = 0
     module_part_counter_dist = {}
     module_cost_list = []
+    need_log = False
     for line in lines:
         if not iteration_begin:
             if "iteration" in line and "learning" in line and "loss" in line:
@@ -51,7 +52,7 @@ def parse_one_log(log_file_path):
                 break
 
         if line.startswith("[BEGIN FORWARD]:") or line.startswith("[BEGINE BACKWARD]"):
-            if len(module_list) > 0 and module_total_kernel_consumed > 0:
+            if need_log and len(module_list) > 0:
                 data = {
                     "Module": "",
                     "Name": "",
@@ -67,6 +68,7 @@ def parse_one_log(log_file_path):
                 )
                 d_t = (block_name, module_total_kernel_consumed)
                 module_cost_list.append(d_t)
+                need_log = False
 
             module_name = line.rstrip("\n").split(":")[-1]
             module_list.append(module_name)
@@ -74,17 +76,19 @@ def parse_one_log(log_file_path):
             module_total_kernel_consumed = 0
 
         if line.startswith("[END FORWARD]:") or line.startswith("[END BACKWARD]"):
-            data = {
-                "Module": "",
-                "Name": "",
-                "TOTAL TIME": "",
-                "MODULE TOTAL TIME": module_total_kernel_consumed,
-            }
-            table_data.append(data)
-            module_name = module_list[-1]
-            block_name = module_name + "_" + str(module_part_counter_dist[module_name])
-            d_t = (block_name, module_total_kernel_consumed)
-            module_cost_list.append(d_t)
+            if need_log:
+                data = {
+                    "Module": "",
+                    "Name": "",
+                    "TOTAL TIME": "",
+                    "MODULE TOTAL TIME": module_total_kernel_consumed,
+                }
+                table_data.append(data)
+                module_name = module_list[-1]
+                block_name = module_name + "_" + str(module_part_counter_dist[module_name])
+                d_t = (block_name, module_total_kernel_consumed)
+                module_cost_list.append(d_t)
+                need_log = False
 
             module_total_kernel_consumed = 0
 
@@ -101,6 +105,7 @@ def parse_one_log(log_file_path):
             if line.startswith("[START_SYMBOL]:"):
                 collecting = True
                 op_name = line.rstrip("\n").split(":")[-1]
+                need_log = True
             continue
 
         if line.startswith("[END_SYMBOL]:"):
@@ -135,8 +140,8 @@ def parse_one_log(log_file_path):
             collecting = False
             continue
 
-        # if line.startswith("[CUDA_PROF]"):
-        if line.startswith("DURATION:"):
+        if line.startswith("[CUDA_PROF]"):
+        # if line.startswith("DURATION:"):
             strs = line.split(" ")
 
             time = float(strs[-1])
@@ -167,14 +172,14 @@ def parse_one_log(log_file_path):
     print("construct table 2: ")
 
     # summarize_table_data = []
-    # total_time_dict = sorted(total_time_dict.items(), key=lambda x: x[1], reverse=True)
+    total_time_dict = sorted(total_time_dict.items(), key=lambda x: x[1], reverse=True)
 
     # if total_iteration_time == 0:
     #     return
 
     table2 = pt.PrettyTable(["Name", "TOTAL TIME", "PERCENT"])
-    # for elem in total_time_dict:
-    #     table2.add_row([elem[0], elem[1], elem[1] / total_iteration_time])
+    for elem in total_time_dict:
+        table2.add_row([elem[0], elem[1], elem[1] / total_iteration_time])
 
     print("construct table 3: ")
     table3 = pt.PrettyTable(["TOTAL TIME"])
@@ -195,6 +200,6 @@ def parse_log(log_path, print_table=True):
     if print_table:
         print("print table: ")
         print(table)
-        # print(table1)
+        print(table1)
         print(table2)
     return cost_list
