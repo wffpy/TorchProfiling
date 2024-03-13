@@ -86,14 +86,11 @@ def parse_one_log(log_file_path):
 
             module_total_kernel_consumed = 0
 
-            module_name = line.rstrip("\n").split(":")[-1]
-            if module_name == module_list[-1]:
-                del module_part_counter_dist[module_name]
-                module_list.pop()
-                if len(module_list) > 0:
-                    module_part_counter_dist[module_list[-1]] += 1
-            else:
-                raise Exception("not find the module name in module list")
+            module_name = module_list[-1]
+            del module_part_counter_dist[module_name]
+            module_list.pop()
+            if len(module_list) > 0:
+                module_part_counter_dist[module_list[-1]] += 1
 
         if not collecting:
             if line.startswith("[START_SYMBOL]:"):

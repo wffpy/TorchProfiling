@@ -76,6 +76,7 @@ def parse_one_log(log_file_path):
             module_total_kernel_consumed = 0
 
         if line.startswith("[END FORWARD]:") or line.startswith("[END BACKWARD]"):
+            # module_name = line.rstrip("\n").split(":")[-1]
             if need_log:
                 data = {
                     "Module": "",
@@ -92,14 +93,11 @@ def parse_one_log(log_file_path):
 
             module_total_kernel_consumed = 0
 
-            module_name = line.rstrip("\n").split(":")[-1]
-            if module_name == module_list[-1]:
-                del module_part_counter_dist[module_name]
-                module_list.pop()
-                if len(module_list) > 0:
-                    module_part_counter_dist[module_list[-1]] += 1
-            else:
-                raise Exception("not find the module name in module list")
+            module_name = module_list[-1]
+            del module_part_counter_dist[module_name]
+            module_list.pop()
+            if len(module_list) > 0:
+                module_part_counter_dist[module_list[-1]] += 1
 
         if not collecting:
             if line.startswith("[START_SYMBOL]:"):
@@ -121,6 +119,9 @@ def parse_one_log(log_file_path):
             module_name = ""
             if len(module_list) > 0:
                 module_name = module_list[-1]
+
+            if "c10d" in op_name:
+                total_kernel_consumed = 0
 
             data = {
                 "Module": module_name,
@@ -145,6 +146,8 @@ def parse_one_log(log_file_path):
             strs = line.split(" ")
 
             time = float(strs[-1])
+            if "c10d" in op_name:
+                time = 0
             total_kernel_consumed += time
             total_iteration_time += time
             module_total_kernel_consumed += total_kernel_consumed
