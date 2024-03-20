@@ -91,9 +91,9 @@ def parse_log():
                         gpu_step_fwd = False
                         xpu_step_fwd = False
                     else:
-                        if gpu_cost_list[gpu_index + 1][0] == xpu_cost_tuple[0]:
+                        if gpu_index +1 < gpu_cost_list_len and gpu_cost_list[gpu_index + 1][0] == xpu_cost_tuple[0]:
                             gpu_index += 1
-                        elif gpu_cost_tuple[0] == xpu_cost_list[xpu_index + 1][0]:
+                        elif xpu_index + 1 < xpu_cost_list_len and gpu_cost_tuple[0] == xpu_cost_list[xpu_index + 1][0]:
                             xpu_index += 1
                         else:
                             gpu_module_name = gpu_cost_tuple[0]
