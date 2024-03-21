@@ -1,0 +1,7 @@
+Metadata-Version: 2.1
+Name: module-logging
+Version: 1.0.0
+Summary: logging on moudle and aten op level
+Author: Eric.Wang
+Author-email: wangfangfei@baidu.com
+Requires-Dist: torch

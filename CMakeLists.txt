@@ -35,6 +35,7 @@ find_package(pybind11 CONFIG REQUIRED)
 include_directories(
     ${pybind11_INCLUDE_DIR}
     ${Python3_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 add_subdirectory(include)
