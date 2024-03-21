@@ -1,9 +1,9 @@
 #include "../include/KernelHook.h"
-#include <list>
-#include <link.h>
-#include <vector>
-#include <iostream>
 #include <functional>
+#include <iostream>
+#include <link.h>
+#include <list>
+#include <vector>
 // #include "eager/framework/function_version.h"
 
 namespace kernel_cache {
@@ -26,35 +26,28 @@ struct xpu_kernel {
     /// kernel code hash, for cache indexing
     uint64_t hash;
     /// (maybe mangled) function name
-    const char* name;
+    const char *name;
     /// private data structure used by xpu runtime
-    void* rt_private;
+    void *rt_private;
 };
 
-template <typename TYPE>
-class Singleton {
-public:
-    static Singleton* instance();
+template <typename TYPE> class Singleton {
+  public:
+    static Singleton *instance();
     Singleton() : elem(new TYPE()) {}
-    ~Singleton() {
-        delete elem;
-    }
-    TYPE* get_elem();
+    ~Singleton() { delete elem; }
+    TYPE *get_elem();
 
-private:
-    TYPE* elem;
+  private:
+    TYPE *elem;
 };
 
-template <typename TYPE>
-Singleton<TYPE>* Singleton<TYPE>::instance() {
-    static Singleton* inst = new Singleton();
+template <typename TYPE> Singleton<TYPE> *Singleton<TYPE>::instance() {
+    static Singleton *inst = new Singleton();
     return inst;
 }
 
-template <typename TYPE>
-TYPE* Singleton<TYPE>::get_elem() {
-    return elem;
-}
+template <typename TYPE> TYPE *Singleton<TYPE>::get_elem() { return elem; }
 
 typedef Singleton<LaunchConfigParams> ConfigSingleton;
 typedef Singleton<LaunchArgSetParams> ArgSetSingleton;
@@ -62,19 +55,19 @@ typedef Singleton<LaunchArgSetParamsList> ArgSetListSingleton;
 typedef Singleton<LaunchKernelParams> LaunchAsyncSingleton;
 typedef Singleton<GraphCacheEntry> GraphCacheEntrySingleton;
 
-LaunchConfigParams::LaunchConfigParams(const LaunchConfigParams& rhs) {
+LaunchConfigParams::LaunchConfigParams(const LaunchConfigParams &rhs) {
     nclusters = rhs.nclusters;
     ncores = rhs.ncores;
     stream = rhs.stream;
 }
 
-LaunchArgSetParams::LaunchArgSetParams(const LaunchArgSetParams& rhs) {
+LaunchArgSetParams::LaunchArgSetParams(const LaunchArgSetParams &rhs) {
     arg = rhs.arg;
     size = rhs.size;
     offset = rhs.offset;
 }
 
-LaunchKernelParams::LaunchKernelParams(const LaunchKernelParams& rhs) {
+LaunchKernelParams::LaunchKernelParams(const LaunchKernelParams &rhs) {
     func = rhs.func;
 }
 
@@ -83,15 +76,17 @@ void OpCacheEntry::execute() {
         return;
     }
 
-    for (auto& kernel_cache_entry : *kernel_cache_entry_list_) {
+    for (auto &kernel_cache_entry : *kernel_cache_entry_list_) {
         // xpu_launch_config
         // auto config_params = kernel_cache_entry.config_params_;
-        // xpu_launch_config(config_params.nclusters, config_params.ncores, config_params.stream);
+        // xpu_launch_config(config_params.nclusters, config_params.ncores,
+        // config_params.stream);
 
         // // xpu_launch_argument_set
         // auto arg_set_params_list = kernel_cache_entry.arg_set_params_list_;
         // for (auto& arg_set_params : arg_set_params_list) {
-        //     xpu_launch_argument_set(arg_set_params.arg, arg_set_params.size, arg_set_params.offset);
+        //     xpu_launch_argument_set(arg_set_params.arg, arg_set_params.size,
+        //     arg_set_params.offset);
         // }
 
         // // xpu_launch_async
@@ -100,13 +95,11 @@ void OpCacheEntry::execute() {
     }
 }
 
-void OpCacheEntry::add_entry(KernelCacheEntry& kernel_cache_entry) {
+void OpCacheEntry::add_entry(KernelCacheEntry &kernel_cache_entry) {
     kernel_cache_entry_list_->push_back(kernel_cache_entry);
 }
 
-int64_t OpCacheEntry::size() {
-    return kernel_cache_entry_list_->size();
-}
+int64_t OpCacheEntry::size() { return kernel_cache_entry_list_->size(); }
 
 void GraphCacheEntry::execute() {
     // if (!kernel_cache_entry_list_) {
@@ -116,12 +109,14 @@ void GraphCacheEntry::execute() {
     // for (auto& kernel_cache_entry : *kernel_cache_entry_list_) {
     //     // xpu_launch_config
     //     auto config_params = kernel_cache_entry.config_params_;
-    //     xpu_launch_config(config_params.nclusters, config_params.ncores, config_params.stream);
+    //     xpu_launch_config(config_params.nclusters, config_params.ncores,
+    //     config_params.stream);
 
     //     // xpu_launch_argument_set
     //     auto arg_set_params_list = kernel_cache_entry.arg_set_params_list_;
     //     for (auto& arg_set_params : arg_set_params_list) {
-    //         xpu_launch_argument_set(arg_set_params.arg, arg_set_params.size, arg_set_params.offset);
+    //         xpu_launch_argument_set(arg_set_params.arg, arg_set_params.size,
+    //         arg_set_params.offset);
     //     }
 
     //     // xpu_launch_async
@@ -131,18 +126,16 @@ void GraphCacheEntry::execute() {
     if (!op_cache_entry_list_) {
         return;
     }
-    for (auto& op_cache_entry : *op_cache_entry_list_) {
+    for (auto &op_cache_entry : *op_cache_entry_list_) {
         op_cache_entry.execute();
     }
 }
 
-void GraphCacheEntry::add_entry(OpCacheEntry& op_cache_entry) {
+void GraphCacheEntry::add_entry(OpCacheEntry &op_cache_entry) {
     op_cache_entry_list_->push_back(op_cache_entry);
 }
 
-int64_t GraphCacheEntry::size() {
-    return op_cache_entry_list_->size();
-}
+int64_t GraphCacheEntry::size() { return op_cache_entry_list_->size(); }
 
 // KernelCache* KernelCache::instance = nullptr;
 
@@ -161,7 +154,8 @@ void KernelCache::start_capture_launch_params(int64_t k) {
 
 void KernelCache::stop_capture_launch_params() {
     capture_graph_ = false;
-    graph_entry_map_[key_] = std::make_shared<GraphCacheEntry>(graph_cache_entry_);
+    graph_entry_map_[key_] =
+        std::make_shared<GraphCacheEntry>(graph_cache_entry_);
 }
 
 void KernelCache::start_capture_op(std::string name) {
@@ -182,11 +176,10 @@ GraphCacheEntry KernelCache::get_graph_cache_entry() {
     return graph_cache_entry_;
 }
 
-OpCacheEntry KernelCache::get_op_cache_entry() {
-    return op_cache_entry_;
-}
+OpCacheEntry KernelCache::get_op_cache_entry() { return op_cache_entry_; }
 
-void KernelCache::register_graph_cache_entry(int64_t key, GraphCacheEntry& entry) {
+void KernelCache::register_graph_cache_entry(int64_t key,
+                                             GraphCacheEntry &entry) {
     if (graph_entry_map_.find(key) != graph_entry_map_.end()) {
         // check error
         return;
@@ -201,43 +194,48 @@ typedef Singleton<KernelCache> KernelCacheSingleton;
 // typedef int (*LaunchArgSetFuncType)(const void* arg, size_t, size_t);
 
 class HookWrapper {
-public:
+  public:
     HookWrapper() {}
-    static int local_launch_async(void* func);
-    static int local_launch_config(int nclusters, int ncores, void* stream);
-    static int local_launch_arg_set(const void* arg, size_t size, size_t offset);
-    static HookWrapper* instance();
-    int (*origin_launch_async_)(void*){nullptr};
-    int (*origin_launch_config_)(int, int, void*){nullptr};
-    int (*origin_launch_arg_set_)(const void*, size_t, size_t){nullptr};
+    static int local_launch_async(void *func);
+    static int local_launch_config(int nclusters, int ncores, void *stream);
+    static int local_launch_arg_set(const void *arg, size_t size,
+                                    size_t offset);
+    static HookWrapper *instance();
+    int (*origin_launch_async_)(void *){nullptr};
+    int (*origin_launch_config_)(int, int, void *){nullptr};
+    int (*origin_launch_arg_set_)(const void *, size_t, size_t){nullptr};
 };
 
-HookWrapper* HookWrapper::instance() {
-    static HookWrapper* instance = new HookWrapper();
+HookWrapper *HookWrapper::instance() {
+    static HookWrapper *instance = new HookWrapper();
     return instance;
 }
 
-int HookWrapper::local_launch_async(void* func) {
-    struct xpu_kernel* kernal = (xpu_kernel*)(func);
+int HookWrapper::local_launch_async(void *func) {
+    struct xpu_kernel *kernal = (xpu_kernel *)(func);
     std::string name = kernal->name;
     // std::cout << "kenrel name: " << name << std::endl;
     // KernelCache* cache = KernelCache::create();
-    KernelCache* cache = KernelCacheSingleton::instance()->get_elem();
+    KernelCache *cache = KernelCacheSingleton::instance()->get_elem();
 
     if (cache->enable_capture()) {
-        static ConfigSingleton* config_inst = ConfigSingleton::instance();
+        static ConfigSingleton *config_inst = ConfigSingleton::instance();
         LaunchConfigParams launch_config_params(*(config_inst->get_elem()));
 
-        static ArgSetListSingleton* argset_list_inst = ArgSetListSingleton::instance();
-        LaunchArgSetParamsList launch_arg_set_params_list(*argset_list_inst->get_elem());
+        static ArgSetListSingleton *argset_list_inst =
+            ArgSetListSingleton::instance();
+        LaunchArgSetParamsList launch_arg_set_params_list(
+            *argset_list_inst->get_elem());
 
-        static LaunchAsyncSingleton* inst = LaunchAsyncSingleton::instance();
+        static LaunchAsyncSingleton *inst = LaunchAsyncSingleton::instance();
         LaunchKernelParams launch_params(func);
 
         OpCacheEntry op_cache_entry = cache->get_op_cache_entry();
-        KernelCacheEntry kernel_cache_entry{launch_config_params, launch_arg_set_params_list, launch_params};
+        KernelCacheEntry kernel_cache_entry{
+            launch_config_params, launch_arg_set_params_list, launch_params};
         op_cache_entry.add_entry(kernel_cache_entry);
-        // std::cout << "cache_entry_size: " << op_cache_entry.size() << std::endl;
+        // std::cout << "cache_entry_size: " << op_cache_entry.size() <<
+        // std::endl;
     }
 
     auto wrapper_instance = HookWrapper::instance();
@@ -248,12 +246,12 @@ int HookWrapper::local_launch_async(void* func) {
     return 0;
 }
 
-int HookWrapper::local_launch_config(int nclusters, int ncores, void* stream) {
+int HookWrapper::local_launch_config(int nclusters, int ncores, void *stream) {
     // KernelCache* cache = KernelCache::create();
-    KernelCache* cache = KernelCacheSingleton::instance()->get_elem();
+    KernelCache *cache = KernelCacheSingleton::instance()->get_elem();
     if (cache->enable_capture()) {
-        static ConfigSingleton* config_inst = ConfigSingleton::instance();
-        LaunchConfigParams* config_params = config_inst->get_elem();
+        static ConfigSingleton *config_inst = ConfigSingleton::instance();
+        LaunchConfigParams *config_params = config_inst->get_elem();
         config_params->nclusters = nclusters;
         config_params->ncores = ncores;
         config_params->stream = stream;
@@ -262,20 +260,24 @@ int HookWrapper::local_launch_config(int nclusters, int ncores, void* stream) {
     auto wrapper_instance = HookWrapper::instance();
     if (wrapper_instance->origin_launch_config_ != nullptr) {
         // std::cout << "execute origin launch config" << std::endl;
-        return wrapper_instance->origin_launch_config_(nclusters, ncores, stream);
+        return wrapper_instance->origin_launch_config_(nclusters, ncores,
+                                                       stream);
     }
     return 0;
 }
 
-int HookWrapper::local_launch_arg_set(const void* arg, size_t size, size_t offset) {
+int HookWrapper::local_launch_arg_set(const void *arg, size_t size,
+                                      size_t offset) {
     // KernelCache* cache = KernelCache::create();
-    KernelCache* cache = KernelCacheSingleton::instance()->get_elem();
+    KernelCache *cache = KernelCacheSingleton::instance()->get_elem();
     if (cache->enable_capture()) {
         // std::cout << "capture launch arg set!!!!!!!!!!!!!!!!!" << std::endl;
-        static ArgSetListSingleton* argset_list_inst = ArgSetListSingleton::instance();
-        LaunchArgSetParamsList* arg_set_params_list = argset_list_inst->get_elem();
-        char* arg_value = new char[size];
-        memcpy((void*)arg_value, arg, size);
+        static ArgSetListSingleton *argset_list_inst =
+            ArgSetListSingleton::instance();
+        LaunchArgSetParamsList *arg_set_params_list =
+            argset_list_inst->get_elem();
+        char *arg_value = new char[size];
+        memcpy((void *)arg_value, arg, size);
         arg_set_params_list->emplace_back(arg_value, size, offset);
     }
     // std::cout << "arg cpu ptr: " << arg << std::endl;
@@ -291,24 +293,22 @@ int HookWrapper::local_launch_arg_set(const void* arg, size_t size, size_t offse
 
 struct HookInfo {
     std::string sym_name;
-    void* new_func;
-    void** origin_func;
+    void *new_func;
+    void **origin_func;
 };
 
 typedef std::list<std::shared_ptr<HookInfo>> HookList;
 
 class HookRegistrar {
-public:
+  public:
     HookRegistrar();
-    static HookRegistrar* instance();
+    static HookRegistrar *instance();
     void register_hook(HookInfo hookinfo);
     HookList get_hooks() const;
     void try_get_origin_func(std::string lib_name);
-    int64_t get_hook_num() {
-        return hook_num_;
-    }
+    int64_t get_hook_num() { return hook_num_; }
 
-private:
+  private:
     HookList hooks_;
     int64_t hook_num_;
 };
@@ -320,12 +320,10 @@ void HookRegistrar::register_hook(HookInfo hook) {
     hook_num_++;
 }
 
-HookList HookRegistrar::get_hooks() const {
-    return hooks_;
-}
+HookList HookRegistrar::get_hooks() const { return hooks_; }
 
-HookRegistrar* HookRegistrar::instance() {
-    static HookRegistrar* inst = new HookRegistrar();
+HookRegistrar *HookRegistrar::instance() {
+    static HookRegistrar *inst = new HookRegistrar();
     return inst;
 }
 
@@ -355,7 +353,8 @@ HookRegistrar* HookRegistrar::instance() {
 // CppHookRegistrar<HookInfoType>::CppHookRegistrar() : hook_num_(0) {}
 
 // template <typename HookInfoType>
-// CppHookRegistrar<HookInfoType>* CppHookRegistrar<HookInfoType>::register_hook(HookInfoType hook) {
+// CppHookRegistrar<HookInfoType>*
+// CppHookRegistrar<HookInfoType>::register_hook(HookInfoType hook) {
 //     hooks_.push_back(std::make_shared<HookInfoType>(hook));
 //     hook_num_++;
 // }
@@ -368,20 +367,21 @@ HookRegistrar* HookRegistrar::instance() {
 
 // template <typename HookInfoType>
 // CppHookRegistrar<<HookInfoType>* CppHookRegistrar<HookInfoType>::instance() {
-//     static CppHookRegistrar<HookInfoType>* inst = new CppHookRegistrar<HookInfoType>();
-//     return inst;
+//     static CppHookRegistrar<HookInfoType>* inst = new
+//     CppHookRegistrar<HookInfoType>(); return inst;
 // }
 
 // template <typename HookInfoType>
-// void CppHookRegistrar<HookInfoType>::try_get_origin_func(std::string lib_name) {
+// void CppHookRegistrar<HookInfoType>::try_get_origin_func(std::string
+// lib_name) {
 //     // return
 // }
 
 void HookRegistrar::try_get_origin_func(std::string lib_name) {
     for (auto hook_ptr : hooks_) {
         if (*(hook_ptr->origin_func) == nullptr) {
-            void* handle = dlopen(lib_name.c_str(), RTLD_LAZY);
-            void* func_ptr = dlsym(handle, hook_ptr->sym_name.c_str());
+            void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
+            void *func_ptr = dlsym(handle, hook_ptr->sym_name.c_str());
             if (func_ptr) {
                 *(hook_ptr->origin_func) = func_ptr;
                 --hook_num_;
@@ -398,11 +398,11 @@ typedef ElfW(Sym) SymAddr;
 
 struct PltInfo {
     std::string lib_name;
-    char* base_addr;
+    char *base_addr;
     int pltrelsz;
-    char* dynstr;
-    RelaAddr* rela_plt;    // .rela.plt 段起始地址
-    SymAddr* dynsym;       // .dynsym 段起始地址
+    char *dynstr;
+    RelaAddr *rela_plt; // .rela.plt 段起始地址
+    SymAddr *dynsym;    // .dynsym 段起始地址
 };
 
 typedef std::vector<PltInfo> PltInfoVec;
@@ -418,7 +418,8 @@ typedef std::vector<PltInfo> PltInfoVec;
 
 //     // std::cout << "lib_name: " << lib_name << std::endl;
 //     // std::string lib_name_str =
-//     // "/ssd1/wangfangfei/projects/baidu/xpu/XMLIR/build/tools/torch_xmlir/python_packages/torch_xmlir/torch_xmlir/_XMLIRC.cpython-38-x86_64-linux-gnu.so";
+//     //
+//     "/ssd1/wangfangfei/projects/baidu/xpu/XMLIR/build/tools/torch_xmlir/python_packages/torch_xmlir/torch_xmlir/_XMLIRC.cpython-38-x86_64-linux-gnu.so";
 //     // if (lib_name_str != std::string(lib_name)) {
 //     //     return 0;
 //     // }
@@ -466,7 +467,8 @@ typedef std::vector<PltInfo> PltInfoVec;
 //     }
 
 //     PltInfoVec* plt_info_vec = static_cast<PltInfoVec*>(data);
-//     plt_info_vec->emplace_back(PltInfo{lib_name, base_addr, pltrelsz, dynstr, rela_plt, dynsym});
+//     plt_info_vec->emplace_back(PltInfo{lib_name, base_addr, pltrelsz, dynstr,
+//     rela_plt, dynsym});
 
 //     return 0;
 // }
@@ -478,22 +480,24 @@ PltInfoVec collect_plt() {
 }
 
 void install_hook() {
-    static HookRegistrar* reg = HookRegistrar::instance();
+    static HookRegistrar *reg = HookRegistrar::instance();
     auto plt_info_vec = collect_plt();
-    for (auto& plt_info : plt_info_vec) {
+    for (auto &plt_info : plt_info_vec) {
         int relaEntryCount = plt_info.pltrelsz / sizeof(ElfW(Rela));
         for (int i = 0; i < relaEntryCount; i++) {
-            RelaAddr* entry = &(plt_info.rela_plt[i]);
+            RelaAddr *entry = &(plt_info.rela_plt[i]);
             int r_sym = ELF64_R_SYM(entry->r_info);
             int st_name = plt_info.dynsym[r_sym].st_name;
-            char* name = &plt_info.dynstr[st_name];
+            char *name = &plt_info.dynstr[st_name];
             // std::cout << "sym name: " << name << std::endl;
 
             for (auto hook_info : reg->get_hooks()) {
                 if (std::string(name) == hook_info->sym_name) {
-                    // std::cout << "found func: " << hook_info->sym_name << std::endl;
-                    uintptr_t hook_point = (uintptr_t)(plt_info.base_addr + entry->r_offset);
-                    *(void**)hook_point = (void*)hook_info->new_func;
+                    // std::cout << "found func: " << hook_info->sym_name <<
+                    // std::endl;
+                    uintptr_t hook_point =
+                        (uintptr_t)(plt_info.base_addr + entry->r_offset);
+                    *(void **)hook_point = (void *)hook_info->new_func;
                 }
             }
         }
@@ -501,26 +505,29 @@ void install_hook() {
 }
 
 class HookRegistration {
-public:
-    HookRegistration(std::string name, void* new_func, void** old_func);
+  public:
+    HookRegistration(std::string name, void *new_func, void **old_func);
 };
 
-HookRegistration::HookRegistration(std::string name, void* new_func, void** old_func) {
-    static HookRegistrar* reg = HookRegistrar::instance();
+HookRegistration::HookRegistration(std::string name, void *new_func,
+                                   void **old_func) {
+    static HookRegistrar *reg = HookRegistrar::instance();
     reg->register_hook(HookInfo{name, new_func, old_func});
 }
 
-#define REGISTERHOOK(name, new_func, old_func) HookRegistration registration##name(#name, new_func, old_func);
+#define REGISTERHOOK(name, new_func, old_func)                                 \
+    HookRegistration registration##name(#name, new_func, old_func);
 
-// REGISTERHOOK(xpu_launch_async, (void*)HookWrapper::local_launch_async, (void**)&HookWrapper::instance()->origin_launch_async_);
-// REGISTERHOOK(xpu_launch_config, (void*)HookWrapper::local_launch_config, (void**)&HookWrapper::instance()->origin_launch_config_);
-// REGISTERHOOK(
+// REGISTERHOOK(xpu_launch_async, (void*)HookWrapper::local_launch_async,
+// (void**)&HookWrapper::instance()->origin_launch_async_);
+// REGISTERHOOK(xpu_launch_config, (void*)HookWrapper::local_launch_config,
+// (void**)&HookWrapper::instance()->origin_launch_config_); REGISTERHOOK(
 //         xpu_launch_argument_set,
 //         (void*)HookWrapper::local_launch_arg_set,
 //         (void**)&HookWrapper::instance()->origin_launch_arg_set_);
 
-void init_kernel_cache(pybind11::module& m) {
+void init_kernel_cache(pybind11::module &m) {
     m.def("install_hook", []() { install_hook(); });
 }
 
-}    // namespace kernel_cache
+} // namespace kernel_cache
