@@ -1,9 +1,11 @@
 #include "CFuncHook.h"
+#include "BackTrace.h"
 #include <functional>
 #include <iostream>
 #include <link.h>
 #include <list>
 #include <vector>
+#include <mutex>
 // #include "eager/framework/function_version.h"
 
 namespace kernel_hook {
@@ -49,22 +51,38 @@ template <typename TYPE> Singleton<TYPE> *Singleton<TYPE>::instance() {
 
 template <typename TYPE> TYPE *Singleton<TYPE>::get_elem() { return elem; }
 
-class HookWrapper {
-  public:
-    HookWrapper() {}
-    static int local_launch_async(void *func);
-    static int local_launch_config(int nclusters, int ncores, void *stream);
-    static int local_launch_arg_set(const void *arg, size_t size,
-                                    size_t offset);
-    static HookWrapper *instance();
-    int (*origin_launch_async_)(void *){nullptr};
-    int (*origin_launch_config_)(int, int, void *){nullptr};
-    int (*origin_launch_arg_set_)(const void *, size_t, size_t){nullptr};
-};
+// class HookWrapper {
+// public:
+//     HookWrapper() {}
+//     ~HookWrapper();
+//     static int local_launch_async(void *func);
+//     static int local_launch_config(int nclusters, int ncores, void *stream);
+//     static int local_launch_arg_set(const void *arg, size_t size,
+//                                     size_t offset);
+//     static int xpu_wait();
+
+//     static HookWrapper *instance();
+//     int (*origin_launch_async_)(void *){nullptr};
+//     int (*origin_launch_config_)(int, int, void *){nullptr};
+//     int (*origin_launch_arg_set_)(const void *, size_t, size_t){nullptr};
+//     int (*origin_xpu_wait_)(){nullptr};
+// private:
+//     static std::once_flag flag;
+//     static HookWrapper* inst;
+// };
+
+std::once_flag HookWrapper::flag;
+HookWrapper *HookWrapper::inst = nullptr;
+
+HookWrapper::~HookWrapper() {
+    delete inst;
+}
 
 HookWrapper *HookWrapper::instance() {
-    static HookWrapper *instance = new HookWrapper();
-    return instance;
+    std::call_once(flag, []() {
+        inst = new HookWrapper();
+    });
+    return inst;
 }
 
 int HookWrapper::local_launch_async(void *func) {
@@ -95,6 +113,21 @@ int HookWrapper::local_launch_arg_set(const void *arg, size_t size,
     if (wrapper_instance->origin_launch_arg_set_ != nullptr) {
         // std::cout << "execute origin launch arg set" << std::endl;
         return wrapper_instance->origin_launch_arg_set_(arg, size, offset);
+    }
+    return 0;
+}
+
+int HookWrapper::local_xpu_wait(void* stream) {
+    // trace::Tracer tracer;
+    // tracer.trace();
+    // tracer.print();
+    auto wrapper_instance = HookWrapper::instance();
+    if (wrapper_instance->origin_xpu_wait_ != nullptr) {
+        // std::cout << "execute origin xpu wait" << std::endl;
+        return wrapper_instance->origin_xpu_wait_(stream);
+    } else {
+        std::cout << "origin xpu wait is null!!!!!!!!!!!!" << std::endl;
+        exit(0);
     }
     return 0;
 }
@@ -209,6 +242,7 @@ PltInfoVec collect_plt() {
 
 void install_hook() {
     static HookRegistrar *reg = HookRegistrar::instance();
+    // std::cout << "hook num: " << reg->get_hook_num() << std::endl;
     auto plt_info_vec = collect_plt();
     for (auto &plt_info : plt_info_vec) {
         int relaEntryCount = plt_info.pltrelsz / sizeof(ElfW(Rela));
@@ -217,12 +251,10 @@ void install_hook() {
             int r_sym = ELF64_R_SYM(entry->r_info);
             int st_name = plt_info.dynsym[r_sym].st_name;
             char *name = &plt_info.dynstr[st_name];
-            std::cout << "sym name: " << name << std::endl;
-
+            // std::cout << "sym name: " << name << std::endl;
             for (auto hook_info : reg->get_hooks()) {
                 if (std::string(name) == hook_info->sym_name) {
-                    // std::cout << "found func: " << hook_info->sym_name <<
-                    // std::endl;
+                    std::cout << "found func: " << hook_info->sym_name << std::endl;
                     uintptr_t hook_point =
                         (uintptr_t)(plt_info.base_addr + entry->r_offset);
                     *(void **)hook_point = (void *)hook_info->new_func;
@@ -232,6 +264,11 @@ void install_hook() {
     }
 }
 
+HookRegistration::HookRegistration(std::string name, void* new_func, void** old_func) {
+    static HookRegistrar* reg = HookRegistrar::instance();
+    reg->register_hook(HookInfo{name, new_func, old_func});
+}
+
 REGISTERHOOK(xpu_launch_async, (void *)HookWrapper::local_launch_async,
              (void **)&HookWrapper::instance()->origin_launch_async_);
 REGISTERHOOK(xpu_launch_config, (void *)HookWrapper::local_launch_config,
@@ -239,8 +276,7 @@ REGISTERHOOK(xpu_launch_config, (void *)HookWrapper::local_launch_config,
 REGISTERHOOK(xpu_launch_argument_set, (void *)HookWrapper::local_launch_arg_set,
              (void **)&HookWrapper::instance()->origin_launch_arg_set_);
 
-void init_kernel_cache(pybind11::module &m) {
-    m.def("install_hook", []() { install_hook(); });
-}
+REGISTERHOOK(xpu_wait, (void *)HookWrapper::local_xpu_wait,
+             (void **)&HookWrapper::instance()->origin_xpu_wait_);
 
 } // namespace kernel_hook

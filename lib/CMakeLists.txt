@@ -1,6 +1,7 @@
 add_library(hook STATIC
     CFuncHook.cpp
-    RegisterCudaHook.cpp
+    BackTrace.cpp
+    RegisterHook.cpp
 )
 
 target_include_directories(hook PRIVATE ${Python3_INCLUDE_DIRS})
