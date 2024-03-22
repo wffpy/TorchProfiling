@@ -6,7 +6,6 @@
 #include <list>
 #include <vector>
 #include <mutex>
-// #include "eager/framework/function_version.h"
 
 namespace kernel_hook {
 typedef ElfW(Rela) RelaAddr;

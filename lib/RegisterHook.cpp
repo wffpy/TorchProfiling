@@ -53,9 +53,9 @@ int HookWrapper::local_launch_arg_set(const void *arg, size_t size,
 }
 
 int HookWrapper::local_xpu_wait(void* stream) {
-    // trace::Tracer tracer;
-    // tracer.trace();
-    // tracer.print();
+    trace::Tracer tracer(__FUNCTION__);
+    tracer.trace();
+    tracer.print();
     auto wrapper_instance = HookWrapper::instance();
     if (wrapper_instance->origin_xpu_wait_ != nullptr) {
         // std::cout << "execute origin xpu wait" << std::endl;
