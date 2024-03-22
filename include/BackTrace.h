@@ -9,10 +9,10 @@ namespace trace {
 class Tracer {
 public:
     Tracer(std::string name);
-    void trace();
-    void print();
     ~Tracer() {}
 private:
+    void trace();
+    void print();
     int64_t max_depth;
     int64_t real_size;
     const std::string func_name;

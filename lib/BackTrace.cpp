@@ -10,7 +10,6 @@
 
 using namespace trace;
 
-// typedef utils::Singleton<>
 class Recorder {
 public:
     // key: library name, value: map of function names and call times
@@ -54,6 +53,7 @@ Recorder::~Recorder() {
 
 typedef utils::Singleton<Recorder> RecorderSingleton;
 
+// get the lib name from path
 std::string get_file_from_path(const std::string path) {
     std::string lib_name = "";
     std::regex re("[^/\\\\]+$");
@@ -85,6 +85,11 @@ std::string demangle(const char* mangled_name) {
  *******************************************************************************/
 Tracer::Tracer(std::string name) : max_depth(100), real_size(0), func_name(name) {
     stack.reserve(max_depth);
+    trace();
+    const char* print_backtrace = std::getenv("PRINT_BACKTRACE");
+    if (print_backtrace && (print_backtrace == "true" || print_backtrace == "TRUE")) {
+        print();
+    }
 }
 
 void Tracer::trace() {
