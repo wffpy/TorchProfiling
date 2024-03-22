@@ -24,6 +24,7 @@ HookWrapper *HookWrapper::instance() {
 }
 
 int HookWrapper::local_launch_async(void *func) {
+    trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = HookWrapper::instance();
     if (wrapper_instance->origin_launch_async_ != nullptr) {
         // std::cout << "execute origin launch" << std::endl;
@@ -33,6 +34,7 @@ int HookWrapper::local_launch_async(void *func) {
 }
 
 int HookWrapper::local_launch_config(int nclusters, int ncores, void *stream) {
+    trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = HookWrapper::instance();
     if (wrapper_instance->origin_launch_config_ != nullptr) {
         // std::cout << "execute origin launch config" << std::endl;
@@ -44,6 +46,7 @@ int HookWrapper::local_launch_config(int nclusters, int ncores, void *stream) {
 
 int HookWrapper::local_launch_arg_set(const void *arg, size_t size,
                                       size_t offset) {
+    trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = HookWrapper::instance();
     if (wrapper_instance->origin_launch_arg_set_ != nullptr) {
         // std::cout << "execute origin launch arg set" << std::endl;
@@ -54,8 +57,6 @@ int HookWrapper::local_launch_arg_set(const void *arg, size_t size,
 
 int HookWrapper::local_xpu_wait(void* stream) {
     trace::Tracer tracer(__FUNCTION__);
-    tracer.trace();
-    tracer.print();
     auto wrapper_instance = HookWrapper::instance();
     if (wrapper_instance->origin_xpu_wait_ != nullptr) {
         // std::cout << "execute origin xpu wait" << std::endl;
