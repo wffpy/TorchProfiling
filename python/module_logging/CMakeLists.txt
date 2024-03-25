@@ -10,13 +10,14 @@ target_include_directories(Hook PUBLIC ${Python3_INCLUDE_DIRS})
 
 target_link_libraries(Hook PRIVATE ${Python3_LIBRARIES})
 
-#set (CUDA_LINK_PATH /usr/local/cuda-11.8/targets/x86_64-linux/lib)
-#link_directories(${CUDA_LINK_PATH})
-
-
 if (CUDA_FOUND)
     target_link_libraries(Hook PRIVATE GpuHook)
     target_link_libraries(Hook PRIVATE ${CUDA_LIBRARIES})
+    set (CUDA_LINK_PATH /usr/local/cuda/lib64/) 
+    target_link_directories(Hook PRIVATE ${CUDA_LINK_PATH})
+    target_link_libraries(Hook PRIVATE cupti)
+    target_link_libraries(Hook PRIVATE cudart)
+    target_link_libraries(Hook PRIVATE cuda)
 endif()
 
 
