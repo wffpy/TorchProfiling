@@ -1,4 +1,5 @@
 #include "CFuncHook.h"
+#include "cuda/GpuProfiler.h"
 #include "BackTrace.h"
 #include <functional>
 #include <iostream>
@@ -8,6 +9,7 @@
 #include <mutex>
 
 using namespace kernel_hook;
+using namespace gpu_profiler;
 
 std::once_flag HookWrapper::flag;
 HookWrapper *HookWrapper::inst = nullptr;
@@ -103,6 +105,7 @@ HookRegistration::HookRegistration(std::string name, void* new_func, void** old_
     reg->register_hook(HookInfo{name, new_func, old_func});
 }
 
+
 REGISTERHOOK(xpu_launch_async, (void *)HookWrapper::local_launch_async,
              (void **)&HookWrapper::instance()->origin_launch_async_);
 REGISTERHOOK(xpu_launch_config, (void *)HookWrapper::local_launch_config,
@@ -112,3 +115,6 @@ REGISTERHOOK(xpu_launch_argument_set, (void *)HookWrapper::local_launch_arg_set,
 
 REGISTERHOOK(xpu_wait, (void *)HookWrapper::local_xpu_wait,
              (void **)&HookWrapper::instance()->origin_xpu_wait_);
+
+REGISTERHOOK(cudaLaunchKernel, (void *)GpuHookWrapper::local_cuda_launch_kernel,
+             (void **)&SingletonGpuHookWrapper::instance().get_elem()->oriign_cuda_launch_kernel_);
