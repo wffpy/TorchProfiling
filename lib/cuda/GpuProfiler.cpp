@@ -1,16 +1,17 @@
 #include "cuda/GpuProfiler.h"
 
+#ifdef CUDA_DEV
 #include <cuda.h>
 #include <cupti.h>
 #include <cupti_events.h>
+#endif
 
 #include "hook/CFuncHook.h"
 #include "utils/Utils.h"
 
 using namespace gpu_profiler;
 
-// void init_gpu_profiler() {}
-
+#ifdef CUDA_DEV
 class GpuHookWrapper {
 public:
     GpuHookWrapper() {}
@@ -24,6 +25,7 @@ public:
 };
 
 typedef utils::Singleton<GpuHookWrapper> SingletonGpuHookWrapper;
+#endif
 
 #define CUPTI_CALL(call)                                                   \
   do {                                                                     \
@@ -46,6 +48,7 @@ typedef utils::Singleton<GpuHookWrapper> SingletonGpuHookWrapper;
        ? ((buffer) + (align) - ((uintptr_t)(buffer) & ((align)-1))) \
        : (buffer))
 
+#ifdef CUDA_DEV
 static void print_activity(CUpti_Activity *record) {
   switch (record->kind) {
     case CUPTI_ACTIVITY_KIND_KERNEL:
@@ -120,7 +123,6 @@ void fini_trace() {
   // application
   CUPTI_CALL(cuptiActivityFlushAll(1));
 }
-/*****************************/
 
 int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
                                              dim3 blockDim, void **args,
@@ -143,12 +145,19 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
   return 0;
 }
 
+// REGISTERHOOK(cudaLaunchKernel, (void *)GpuHookWrapper::local_cuda_launch_kernel,
+//              (void **)&SingletonGpuHookWrapper::instance()
+//                  .get_elem()
+//                  ->oriign_cuda_launch_kernel_);
+#endif
+
 namespace gpu_profiler{
 void register_gpu_hook() {
+#ifdef CUDA_DEV
 REGISTERHOOK(cudaLaunchKernel, (void *)GpuHookWrapper::local_cuda_launch_kernel,
              (void **)&SingletonGpuHookWrapper::instance()
                  .get_elem()
                  ->oriign_cuda_launch_kernel_);
-
+#endif
 }
 }   // namespace gpu_profiler

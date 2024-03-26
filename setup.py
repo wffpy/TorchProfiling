@@ -22,16 +22,21 @@ class CMakeBuild(build_ext):
 
         ninja_args = []
         install_cmd = 'make'
+        enable_cuda = os.environ.get('CUDA_DEV')
 
         cmake_args = [
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name))),
             '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DCMAKE_INSTALL_PREFIX=' + os.path.join(os.path.abspath(os.path.dirname(self.build_lib)), os.path.basename(self.build_lib)),   
-            '-DPYBIND11_GET_OPINFO=' + pybind11.__path__[0]
+            '-DPYBIND11_GET_OPINFO=' + pybind11.__path__[0],
+            # '-DCUDA_DEV',
             # '-DPYTHON_INCLUDE_DIR=' + os.environ.get('PYTHON_INCLUDE_DIR'),
             # '-DPYTHON_LIBRARY=' + os.environ.get('PYTHON_LIBRARY'),
             # f'-B {os.path.join(script_dir, "build")}',
         ]
+        if enable_cuda == "true":
+            cmake_args.append('-DCUDA_DEV=TRUE')
+
         # if publish_build:
         # cmake_args.append('-DPYTHON_INCLUDE_DIR=' + os.environ.get('PYTHON_INCLUDE_DIR'))
         # cmake_args.append('-DPYTHON_LIBRARY=' + os.environ.get('PYTHON_LIBRARY'))

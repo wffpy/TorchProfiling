@@ -3,7 +3,7 @@
 #include <iostream>
 // #include "Utils.h" 
 // #include <cuda.h>
-#include <cuda_runtime.h>
+// #include <cuda_runtime.h>
 
 namespace gpu_profiler {
 
