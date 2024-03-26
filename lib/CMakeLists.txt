@@ -1,9 +1,12 @@
-add_library(hook STATIC CFuncHook.cpp BackTrace.cpp RegisterHook.cpp)
+add_subdirectory(cuda)
+add_subdirectory(cpu)
+add_subdirectory(utils)
+add_subdirectory(hook)
 
-    target_include_directories(hook PRIVATE ${Python3_INCLUDE_DIRS})
-        target_link_libraries(hook PRIVATE ${Python3_LIBRARIES})
-            target_link_libraries(hook PRIVATE GpuHook)
-
-                install(TARGETS hook DESTINATION ${DST_DIRECTORY_TO_INSTALL})
-
-                    add_subdirectory(cuda)
+# add_library(hook STATIC RegisterHook.cpp)
+# target_include_directories(hook PRIVATE ${Python3_INCLUDE_DIRS})
+# target_link_libraries(hook PRIVATE ${Python3_LIBRARIES})
+# target_link_libraries(hook PRIVATE GpuHook)
+# target_link_libraries(hook PRIVATE CpuHook)
+# target_link_libraries(hook PRIVATE Util)
+# install(TARGETS hook DESTINATION ${DST_DIRECTORY_TO_INSTALL})

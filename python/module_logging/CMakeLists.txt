@@ -5,6 +5,9 @@ pybind11_add_module(Hook init.cpp)
 target_include_directories(Hook PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
 target_link_libraries(Hook PRIVATE hook)
+target_link_libraries(Hook PRIVATE CpuHook)
+target_link_libraries(Hook PRIVATE Util)
+
 
 target_include_directories(Hook PUBLIC ${Python3_INCLUDE_DIRS})
 

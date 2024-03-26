@@ -1,5 +1,5 @@
-#include "CFuncHook.h"
-#include "BackTrace.h"
+#include "hook/CFuncHook.h"
+#include "utils/BackTrace.h"
 #include <functional>
 #include <iostream>
 #include <link.h>
@@ -7,7 +7,7 @@
 #include <mutex>
 #include <vector>
 
-namespace kernel_hook {
+namespace cfunc_hook {
 typedef ElfW(Rela) RelaAddr;
 typedef ElfW(Sym) SymAddr;
 
@@ -88,7 +88,7 @@ PltInfoVec collect_plt() {
 
 void install_hook() {
   static HookRegistrar *reg = HookRegistrar::instance();
-  // std::cout << "hook num: " << reg->get_hook_num() << std::endl;
+  std::cout << "hook num: " << reg->get_hook_num() << std::endl;
   auto plt_info_vec = collect_plt();
   for (auto &plt_info : plt_info_vec) {
     int relaEntryCount = plt_info.pltrelsz / sizeof(ElfW(Rela));
@@ -110,4 +110,40 @@ void install_hook() {
   }
 }
 
-} // namespace kernel_hook
+HookRegistrar::HookRegistrar() : hook_num_(0) {}
+
+void HookRegistrar::register_hook(HookInfo hook) {
+  hooks_.push_back(std::make_shared<HookInfo>(hook));
+  hook_num_++;
+}
+
+HookList HookRegistrar::get_hooks() const { return hooks_; }
+
+HookRegistrar *HookRegistrar::instance() {
+  static HookRegistrar *inst = new HookRegistrar();
+  return inst;
+}
+
+void HookRegistrar::try_get_origin_func(std::string lib_name) {
+  for (auto hook_ptr : hooks_) {
+    if (*(hook_ptr->origin_func) == nullptr) {
+      void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
+      void *func_ptr = dlsym(handle, hook_ptr->sym_name.c_str());
+      if (func_ptr) {
+        *(hook_ptr->origin_func) = func_ptr;
+        --hook_num_;
+      }
+      if (hook_num_ == 0) {
+        break;
+      }
+    }
+  }
+}
+
+HookRegistration::HookRegistration(std::string name, void *new_func,
+                                   void **old_func) {
+  static HookRegistrar *reg = HookRegistrar::instance();
+  reg->register_hook(HookInfo{name, new_func, old_func});
+}
+
+} // namespace cfunc_hook

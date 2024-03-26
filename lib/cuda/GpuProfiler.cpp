@@ -4,12 +4,26 @@
 #include <cupti.h>
 #include <cupti_events.h>
 
-#include "CFuncHook.h"
-#include "Utils.h"
+#include "hook/CFuncHook.h"
+#include "utils/Utils.h"
 
 using namespace gpu_profiler;
 
-void init_gpu_profiler() {}
+// void init_gpu_profiler() {}
+
+class GpuHookWrapper {
+public:
+    GpuHookWrapper() {}
+    ~GpuHookWrapper() {}
+
+    static int local_cuda_launch(void* func);
+    static int local_cuda_launch_kernel(const void* func, dim3 gridDim, dim3 blockDim, void** args, size_t sharedMem, cudaStream_t stream);
+
+    int (*oriign_cuda_launch_)(void*) = nullptr;
+    int (*oriign_cuda_launch_kernel_)(const void*, dim3, dim3, void**, size_t, cudaStream_t) = nullptr;
+};
+
+typedef utils::Singleton<GpuHookWrapper> SingletonGpuHookWrapper;
 
 #define CUPTI_CALL(call)                                                   \
   do {                                                                     \
@@ -119,7 +133,7 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
       SingletonGpuHookWrapper::instance().get_elem();
   if (wrapper_instance->oriign_cuda_launch_kernel_) {
     wrapper_instance->oriign_cuda_launch_kernel_(
-        func, static_cast<dim3>(gridDim), blockDim, args, sharedMem, stream);
+        func, (gridDim), blockDim, args, sharedMem, stream);
   } else {
     std::cout << "not cuda launch !!!!!!!!!!" << std::endl;
   }
@@ -128,3 +142,13 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
 
   return 0;
 }
+
+namespace gpu_profiler{
+void register_gpu_hook() {
+REGISTERHOOK(cudaLaunchKernel, (void *)GpuHookWrapper::local_cuda_launch_kernel,
+             (void **)&SingletonGpuHookWrapper::instance()
+                 .get_elem()
+                 ->oriign_cuda_launch_kernel_);
+
+}
+}   // namespace gpu_profiler

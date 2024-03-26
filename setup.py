@@ -42,7 +42,7 @@ class CMakeBuild(build_ext):
 
         subprocess.check_call(['cmake', f'{script_dir}'] + cmake_args + ninja_args, cwd=build_dir)
         subprocess.check_call(['cmake', '--build', '.'], cwd=build_dir)
-        subprocess.check_call([f'{install_cmd}', 'install'], cwd=build_dir)
+        # subprocess.check_call([f'{install_cmd}', 'install'], cwd=build_dir)
 
 setup(
     name="module_logging",
