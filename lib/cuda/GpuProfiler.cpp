@@ -54,7 +54,7 @@ static void print_activity(CUpti_Activity *record) {
     case CUPTI_ACTIVITY_KIND_KERNEL:
     case CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL: {
       CUpti_ActivityKernel4 *kernel = (CUpti_ActivityKernel4 *)record;
-      std::cout << "[GPERF] " << kernel->name << ": "
+      std::cout << "[CUPTI_PROF] " << kernel->name << ": "
                 << kernel->end - kernel->start << " ns" << std::endl;
       break;
     }
@@ -110,8 +110,8 @@ void CUPTIAPI buffer_completed(CUcontext ctx, uint32_t streamId,
 void init_trace() {
   // A kernel executing on the GPU. The corresponding activity record structure
   // is CUpti_ActivityKernel4.
-  // CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL));
-  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL));
+  CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL));
+  // CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL));
 
   // Register callbacks for buffer requests and for buffers completed by CUPTI.
   CUPTI_CALL(
@@ -122,6 +122,7 @@ void fini_trace() {
   // Force flush any remaining activity buffers before termination of the
   // application
   CUPTI_CALL(cuptiActivityFlushAll(1));
+  cuptiFinalize();
 }
 
 int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
@@ -145,19 +146,14 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
   return 0;
 }
 
-// REGISTERHOOK(cudaLaunchKernel, (void *)GpuHookWrapper::local_cuda_launch_kernel,
-//              (void **)&SingletonGpuHookWrapper::instance()
-//                  .get_elem()
-//                  ->oriign_cuda_launch_kernel_);
-#endif
-
-namespace gpu_profiler{
-void register_gpu_hook() {
-#ifdef CUDA_DEV
 REGISTERHOOK(cudaLaunchKernel, (void *)GpuHookWrapper::local_cuda_launch_kernel,
              (void **)&SingletonGpuHookWrapper::instance()
                  .get_elem()
                  ->oriign_cuda_launch_kernel_);
 #endif
+
+namespace gpu_profiler{
+void register_gpu_hook() {
+  // this function do nothing, but can not remove
 }
 }   // namespace gpu_profiler

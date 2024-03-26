@@ -141,8 +141,7 @@ def parse_one_log(log_file_path):
             collecting = False
             continue
 
-        if line.startswith("[CUDA_PROF]"):
-        # if line.startswith("DURATION:"):
+        if line.startswith("[CUPTI_PROF]"):
             strs = line.split(" ")
 
             time = float(strs[-1])

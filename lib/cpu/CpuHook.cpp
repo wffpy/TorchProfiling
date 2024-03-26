@@ -80,5 +80,6 @@ REGISTERHOOK(xpu_wait, (void *)CpuHookWrapper::local_xpu_wait,
 
 namespace cpu_hook {
 void register_cpu_hook() {
+  // this function do nothing, but can not remove
 }
 }

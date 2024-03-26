@@ -15,10 +15,8 @@ class PerformanceLogger(TorchDispatchMode):
     """
     insert delimiters before and and after op execution
     """
-
-    def __init__(self, gpu=False, model=None) -> None:
+    def __init__(self, model=None) -> None:
         super().__init__()
-        self.gpu = gpu
         if model:
             if isinstance(model, list):
                 for module in model:
@@ -70,38 +68,10 @@ class PerformanceLogger(TorchDispatchMode):
             kwargs = {}
         #  insert pre-op delimiter
         print("[START_SYMBOL]: {}".format(str(op)))
-        if self.gpu:
-            # get device index and stream
-            device_index = torch.cuda.current_device()
-            device = torch.device("cuda:" + str(device_index))
-            stream = torch.cuda.current_stream(device)
-            # end event
-            event = torch.cuda.Event(enable_timing=True)
-            # start event
-            start_event = torch.cuda.Event(enable_timing=True)
-            torch.cuda._sleep(1000000)
-            # insert start event on current stream
-            stream.record_event(start_event)
-            # call op
-            output = op(*args, **kwargs)
-            # insert end event on current stream
-            stream.record_event(event)
-            event.synchronize()
-            duration = start_event.elapsed_time(event)
-            # if (
-            #     torch.is_tensor(output)
-            #     and len(args) > 0
-            #     and torch.is_tensor(args[0])
-            #     and output.data_ptr() == args[0].data_ptr()
-            # ):
-            #     duration = 0
-            print("[CUDA_PROF]: {}".format(duration))
-        else:
-            import os
+        # call op
+        output = op(*args, **kwargs)
 
-            print("[PROCESS ID]: {}".format(os.getpid()))
-            # call op
-            output = op(*args, **kwargs)
-
+        #  insert after-op delimiter
+        print("[START_SYMBOL]: {}".format(str(op)))
         print("[END_SYMBOL]: {}".format(str(op)))
         return output
