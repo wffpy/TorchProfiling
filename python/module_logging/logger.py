@@ -10,23 +10,45 @@ def get_module_index():
     MODULE_COUNTER += 1
     return MODULE_COUNTER
 
-
 class PerformanceLogger(TorchDispatchMode):
     """
     insert delimiters before and and after op execution
     """
     def __init__(self, model=None) -> None:
         super().__init__()
+        # traverse modules and register forward and backward hooks for each
         if model:
             if isinstance(model, list):
                 for module in model:
-                    for name, m in module.named_modules():
-                        name += "_{}".format(get_module_index())
+                    m_tuple = self.get_named_modules(module)
+                    for name, m in m_tuple:
                         self._register_hook(name, m)
             elif isinstance(model, torch.nn.Module):
-                for name, m in model.named_modules():
-                    name += "_{}".format(get_module_index())
+                m_tuple = self.get_named_modules(model)
+                for name, m in m_tuple:
                     self._register_hook(name, m)
+
+    def get_named_modules(self, module:torch.nn.Module, prefix=""):
+        stack = []
+        m_name = module.__class__.__name__  if prefix == "" else prefix
+        stack.append((m_name, module))
+        acc_index = 0
+        while acc_index < len(stack):
+            f_name, f_m = stack[acc_index]
+            child_modules = f_m.named_children()
+            counter = 0
+            for name, mod in child_modules:
+                # construct module name
+                if name == "":
+                    name = "{}".format(counter)
+                    counter += 1
+                # store module name and module
+                s_name = f_name + "#" + name
+                s_m = mod
+                stack.append((s_name, s_m))
+
+            acc_index += 1
+        return stack
 
     def pre_forward_hook_wrapper(self, name):
         def pre_forward_hook(module, input):
@@ -45,7 +67,7 @@ class PerformanceLogger(TorchDispatchMode):
     def pre_backward_hook_wrapper(self, name):
         def pre_backward_hook(module, input):
             torch.cuda.synchronize()
-            print("[BEGINE BACKWARD]: {}_backward".format(name))
+            print("[BEGIN BACKWARD]: {}_backward".format(name))
 
         return pre_backward_hook
 
@@ -68,10 +90,12 @@ class PerformanceLogger(TorchDispatchMode):
             kwargs = {}
         #  insert pre-op delimiter
         print("[START_SYMBOL]: {}".format(str(op)))
+
         # call op
+        torch.cuda.synchronize()
         output = op(*args, **kwargs)
+        torch.cuda.synchronize()
 
         #  insert after-op delimiter
-        print("[START_SYMBOL]: {}".format(str(op)))
         print("[END_SYMBOL]: {}".format(str(op)))
         return output

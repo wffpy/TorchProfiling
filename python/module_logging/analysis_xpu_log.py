@@ -48,7 +48,7 @@ def parse_one_log(log_file_path):
                 break
         # print(line)
 
-        if line.startswith("[BEGIN FORWARD]:") or line.startswith("[BEGINE BACKWARD]"):
+        if line.startswith("[BEGIN FORWARD]:") or line.startswith("[BEGIN BACKWARD]"):
             if len(module_list) > 0 and module_total_kernel_consumed > 0:
                 data = {
                     "Module": "",

@@ -1,11 +1,13 @@
 import argparse
 from ast import arg
+from asyncore import write
 import pathlib
 import sys
 from .analysis_xpu_log import parse_log as parse_xpu_log
 from .analysis_gpu_log import parse_log as parse_gpu_log
 from .analysis_xpu_without_xdnn_pytorch import parse_log as parse_xpu_log2
 import prettytable as pt
+from .analysis import Analyzer
 
 # import analysis_gpu_log
 # import analysis_xpu_log
@@ -28,12 +30,43 @@ def parse_args():
     arg_parser.add_argument(
         "--compare", action="store_true", help="compares the two log files"
     )
-    arg_parser.add_argument("--xpu_log", type=pathlib.Path, help="path to XPU log file")
+
     arg_parser.add_argument(
-        "--xpu_log_non_xdnn_pytorch", type=pathlib.Path, help="path to XPU log file"
+        "--csv", action="store_true", help="write tables to csv files"
     )
-    arg_parser.add_argument("--gpu_log", type=pathlib.Path, help="path to GPU log file")
+
+    arg_parser.add_argument(
+        "--all", action="store_true", help="generate all tables"
+    )
+
+    arg_parser.add_argument(
+        "--detail", action="store_true", help="generate detail table"
+    )
+
+    arg_parser.add_argument(
+        "--summary", action="store_true", help="generate summary table"
+    )
+
+    arg_parser.add_argument(
+        "--total", action="store_false", help="generate summary table"
+    )
+
+    arg_parser.add_argument("--path", type=pathlib.Path, help="path to XPU log file")
+
     return arg_parser.parse_args()
+
+
+def write_table(table, table_name=None, csv=False):
+    '''
+    Function:
+    write table to csv file or print to stdout
+    '''
+    if csv and table_name:
+        with open("/tmp/{}.csv".format(table_name), "w") as f:
+            f.write(table.get_string())
+            f.close()
+    else:
+        print(table)
 
 
 def parse_log():
@@ -42,78 +75,31 @@ def parse_log():
     Returns:
         void
     """
-
     args = parse_args()
-    gpu_cost_list = []
-    xpu_cost_list = []
+    analyzer = Analyzer(args.path)
+    analyzer.analysis()
+    if args.all:
+        s_table = analyzer.gen_max_min_avg_table()
+        d_table = analyzer.gen_detail_table()
+        t_table = analyzer.gen_total_time_table()
+        write_table(s_table, "summary", args.csv)
+        write_table(d_table, "detail", args.csv)
+        write_table(t_table, "total", args.csv)
+    else:
+        if args.total:
+            t_table = analyzer.gen_total_time_table()
+            write_table(t_table, "total", args.csv)
+        if args.summary:
+            s_table = analyzer.gen_max_min_avg_table()
+            write_table(s_table, "summary", args.csv)
+        if args.detail:
+            d_table = analyzer.gen_detail_table()
+            write_table(d_table, "detail", args.csv)
+    
 
-    if args.xpu_log:
-        parse_xpu_log(args.xpu_log, not args.compare)
 
-    if args.gpu_log:
-        gpu_cost_list = parse_gpu_log(args.gpu_log, not args.compare)
 
-    if args.xpu_log_non_xdnn_pytorch:
-        xpu_cost_list = parse_xpu_log2(args.xpu_log_non_xdnn_pytorch, not args.compare)
 
-    if args.compare:
-        gpu_cost_list_len = len(gpu_cost_list)
-        xpu_cost_list_len = len(xpu_cost_list)
-        if gpu_cost_list_len > 0 and xpu_cost_list_len > 0:
-            gpu_index = 0
-            xpu_index = 0
-            gpu_step_fwd = False
-            xpu_step_fwd = False
-            table = pt.PrettyTable(["Module", "gpu", "xpu", "diff"])
-            summary = {}
 
-            while gpu_index < gpu_cost_list_len:
-                gpu_cost_tuple = gpu_cost_list[gpu_index]
-                if xpu_index < xpu_cost_list_len:
-                    xpu_cost_tuple = xpu_cost_list[xpu_index]
 
-                    if gpu_cost_tuple[0] == xpu_cost_tuple[0]:
-                        module_name = gpu_cost_tuple[0]
-                        gpu_data = gpu_cost_tuple[1]
-                        xpu_data = xpu_cost_tuple[1]
-                        table.add_row(
-                            [module_name, gpu_data, xpu_data, xpu_data - gpu_data]
-                        )
-                        # if summary.has_key(module_name):
-                        if module_name in summary.keys():
-                            summary[module_name] += xpu_data - gpu_data
-                        else:
-                            summary[module_name] = xpu_data - gpu_data
-                        if gpu_index < gpu_cost_list_len:
-                            gpu_index += 1
-                        if xpu_index < xpu_cost_list_len:
-                            xpu_index += 1
-                        gpu_step_fwd = False
-                        xpu_step_fwd = False
-                    else:
-                        if gpu_index +1 < gpu_cost_list_len and gpu_cost_list[gpu_index + 1][0] == xpu_cost_tuple[0]:
-                            gpu_index += 1
-                        elif xpu_index + 1 < xpu_cost_list_len and gpu_cost_tuple[0] == xpu_cost_list[xpu_index + 1][0]:
-                            xpu_index += 1
-                        else:
-                            gpu_module_name = gpu_cost_tuple[0]
-                            gpu_data = gpu_cost_tuple[1]
-                            table.add_row([gpu_module_name, gpu_data, 0, 0])
-                            if gpu_index < gpu_cost_list_len:
-                                gpu_index += 1
-                else:
-                    gpu_module_name = gpu_cost_tuple[0]
-                    gpu_data = gpu_cost_tuple[1]
-                    table.add_row([gpu_module_name, gpu_data, 0, 0])
-                    if gpu_index < gpu_cost_list_len:
-                        gpu_index += 1
-            print(table)
-
-            summary = sorted(summary.items(), key=lambda x: x[1], reverse=True)
-            sum_table = pt.PrettyTable(["Module", "total cost"])
-            # for key in summary.keys():
-            for elem in summary:
-                sum_table.add_row([elem[0], elem[1]])
-
-                # print(key, summary[key])
-            print(sum_table)
+        
