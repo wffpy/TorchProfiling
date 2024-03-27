@@ -37,37 +37,5 @@ Singleton<TYPE>&  Singleton<TYPE>::instance() {
 
 template <typename TYPE> TYPE *Singleton<TYPE>::get_elem() { return elem; }
 
-// template <typename TYPE>
-// void print_table(TYPE t) {
-//     std::cout << "not supported type" << std::endl;
-//     exit(-1);
-// }
-
-template <typename TYPE>
-void print_table(const std::string table_name, const std::vector<std::string> col_name, const std::vector<std::vector<TYPE>>& data) {
-    // print table name
-    std::cout <<  std::setw(20) << table_name << std::endl; 
-    for (auto& col : col_name) {
-        std::cout << std::setw(10) << col;
-    }
-    std::cout << std::endl;
-
-    for (auto& row : data) {
-        for (auto& elem : row) {
-            std::cout << std::setw(10) << elem;
-        }
-        std::cout << std::endl;
-    }
-}
-
-template <typename TYPE>
-void print_line(std::initializer_list<TYPE> data) {
-    for (auto& elem : data) {
-        std::cout << std::setw(20) << std::setfill(' ') << elem;
-    }
-    std::cout << std::endl;
-}
-
-void print_table_name(const std::string t_name);
 } // namespace utils
 #endif

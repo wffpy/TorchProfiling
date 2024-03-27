@@ -1,5 +1,6 @@
 #include "utils/BackTrace.h"
 #include "utils/Utils.h"
+#include "utils/ConsoleTable/ConsoleTable.h"
 #include <cstdlib>
 #include <cxxabi.h>
 #include <dlfcn.h>
@@ -9,6 +10,7 @@
 #include <regex>
 
 using namespace trace;
+using namespace console_table;
 
 class Recorder {
   public:
@@ -45,14 +47,20 @@ void Recorder::record(std::string lib_name, std::string func_name) {
 Recorder::~Recorder() {
     for (auto lib_iter = recorder_map.begin(); lib_iter != recorder_map.end();
          ++lib_iter) {
+        ConsoleTable ct(BASIC);
+        ct.set_padding(1);
+        ct.add_column("Function Name");
+        ct.add_column("Call Times");
         std::string lib_name = lib_iter->first;
-        utils::print_table_name(lib_name);
+        std::cout << lib_name << std::endl;
         for (auto func_iter = lib_iter->second.begin();
-             func_iter != lib_iter->second.end(); ++func_iter) {
-            utils::print_line(
-                {func_iter->first, std::to_string(func_iter->second)});
-            std::cout << std::endl;
+            func_iter != lib_iter->second.end(); ++func_iter) {
+            auto entry = std::make_shared<ConsoleTableRow>(2);
+            entry->add_entry(func_iter->first, 0);
+            entry->add_entry(std::to_string(func_iter->second), 1);
+            ct.add_row(entry);
         }
+        ct.print_table();
     }
 }
 
