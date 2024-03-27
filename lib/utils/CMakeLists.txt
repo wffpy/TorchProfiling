@@ -1,3 +1,1 @@
-add_library(Util STATIC
-    BackTrace.cpp
-)
+add_library(Util STATIC BackTrace.cpp Utils.cpp)
