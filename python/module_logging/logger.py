@@ -1,6 +1,11 @@
-import torch
-from torch.utils._python_dispatch import TorchDispatchMode
 import time
+
+import torch
+import torch.distributed as dist
+from torch.utils._python_dispatch import TorchDispatchMode
+from torch.overrides import TorchFunctionMode, resolve_name
+from contextlib import contextmanager
+
 
 MODULE_COUNTER = 0
 
@@ -99,3 +104,36 @@ class PerformanceLogger(TorchDispatchMode):
         #  insert after-op delimiter
         print("[END_SYMBOL]: {}".format(str(op)))
         return output
+
+class TorchFunctionLog(TorchFunctionMode):
+    def __torch_function__(self, func, types, args, kwargs=None):
+        # 打印 torch module接口
+        print(f"Torch Function Log: {resolve_name(func)}(*{args}, **{kwargs})\n")
+        return func(*args, **(kwargs or {}))
+
+
+@contextmanager
+def TorchFunctionLogAndPerformanceLogger():
+    with TorchFunctionLog():
+        with PerformanceLogger():
+            yield
+
+@contextmanager
+def combined_context():
+    """
+    with combined_context():
+        train()
+    """
+    # 判断是否处于分布式环境中
+    if dist.is_available() and dist.is_initialized():
+        rank = dist.get_rank()
+        if rank == 0:
+            with TorchFunctionLogAndPerformanceLogger():
+                yield
+        else:
+            # 如果 rank 不是 0，则不执行任何操作
+            yield
+    else:
+        # 默认单机
+        with TorchFunctionLogAndPerformanceLogger():
+            yield

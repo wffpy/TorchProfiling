@@ -1,2 +1,0 @@
-[console_scripts]
-module_logging = module_logging.__main__:main
