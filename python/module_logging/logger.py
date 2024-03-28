@@ -113,27 +113,27 @@ class TorchFunctionLog(TorchFunctionMode):
 
 
 @contextmanager
-def TorchFunctionLogAndPerformanceLogger():
+def TorchFunctionLogAndPerformanceLogger(model):
     with TorchFunctionLog():
-        with PerformanceLogger():
+        with PerformanceLogger(model):
             yield
 
 @contextmanager
-def combined_context():
+def combined_context(model):
     """
-    with combined_context():
+    with combined_context(model):
         train()
     """
     # 判断是否处于分布式环境中
     if dist.is_available() and dist.is_initialized():
         rank = dist.get_rank()
         if rank == 0:
-            with TorchFunctionLogAndPerformanceLogger():
+            with TorchFunctionLogAndPerformanceLogger(model):
                 yield
         else:
             # 如果 rank 不是 0，则不执行任何操作
             yield
     else:
         # 默认单机
-        with TorchFunctionLogAndPerformanceLogger():
+        with TorchFunctionLogAndPerformanceLogger(model):
             yield
