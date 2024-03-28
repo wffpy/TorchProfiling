@@ -15,9 +15,10 @@ bash build.sh
 
 ## User Guide
 
-### step 1: Profiling
+### Get Profiling Data
+#### step 1: Profiling
 
-#### Usage 1: not display torch.Module
+##### Usage 1: not display torch.Module
 ```
 import module_logging as m
 m.Hook.install_hook()
@@ -27,7 +28,7 @@ with m.logger.PerformanceLogger():
 
 ```
 
-#### Usage 2: display the torch.Module
+##### Usage 2: display the torch.Module
 ```
 import module_logging as m
 m.Hook.install_hook()
@@ -38,7 +39,7 @@ with m.logger.PerformanceLogger(m):
 
 ```
 
-### step 2: Post-Processing
+#### step 2: Post-Processing
 ```
 # for default print the total time table
 python -m module_logging --path 7.log
@@ -57,6 +58,13 @@ python -m module_logging --path 7.log --csv
 
 ```
 
+### 统计C函数调用次数
+```
+import module_logging
+module_logging.Hook.install_hook()
+
+python test.py
+```
 
 ### C Function Counter
 TODO:
