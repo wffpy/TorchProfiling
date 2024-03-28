@@ -40,7 +40,21 @@ with m.logger.PerformanceLogger(m):
 
 ### step 2: Post-Processing
 ```
-python -m module_logging --gpu_log 7.log
+# for default print the total time table
+python -m module_logging --path 7.log
+
+# print summary table
+python -m module_logging --path 7.log --summary
+
+# print the detail table
+python -m module_logging --path 7.log --detail
+
+# print all 3 kinds table
+python -m module_logging --path 7.log --all
+
+# write table to csv: /tmp/total.csv
+python -m module_logging --path 7.log --csv
+
 ```
 
 
