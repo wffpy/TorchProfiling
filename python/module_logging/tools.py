@@ -7,7 +7,7 @@ from .analysis_xpu_log import parse_log as parse_xpu_log
 from .analysis_gpu_log import parse_log as parse_gpu_log
 from .analysis_xpu_without_xdnn_pytorch import parse_log as parse_xpu_log2
 import prettytable as pt
-from .analysis import Analyzer
+from .analysis import Analyzer, gen_module_compare_tables, gen_module_compare_table_str
 
 # import analysis_gpu_log
 # import analysis_xpu_log
@@ -27,10 +27,6 @@ def parse_args():
     )
 
     # arg_parser.add_argument("--c", type=pathlib.Path, help="path to XPU log file")
-    arg_parser.add_argument(
-        "--compare", action="store_true", help="compares the two log files"
-    )
-
     arg_parser.add_argument(
         "--csv", action="store_true", help="write tables to csv files"
     )
@@ -52,6 +48,14 @@ def parse_args():
     )
 
     arg_parser.add_argument("--path", type=pathlib.Path, help="path to XPU log file")
+
+    arg_parser.add_argument(
+        "--compare", action="store_true", help="generate summary table"
+    )
+
+    arg_parser.add_argument("--lhs_path", type=pathlib.Path, help="path to log file")
+
+    arg_parser.add_argument("--rhs_path", type=pathlib.Path, help="path to log file")
 
     return arg_parser.parse_args()
 
@@ -76,25 +80,42 @@ def parse_log():
         void
     """
     args = parse_args()
-    analyzer = Analyzer(args.path)
-    analyzer.analysis()
-    if args.all:
-        s_table = analyzer.gen_max_min_avg_table()
-        d_table = analyzer.gen_detail_table()
-        t_table = analyzer.gen_total_time_table()
-        write_table(s_table, "summary", args.csv)
-        write_table(d_table, "detail", args.csv)
-        write_table(t_table, "total", args.csv)
-    else:
-        if args.total:
-            t_table = analyzer.gen_total_time_table()
-            write_table(t_table, "total", args.csv)
-        if args.summary:
+    if not args.compare:
+        analyzer = Analyzer(args.path)
+        analyzer.analysis()
+        if args.all:
             s_table = analyzer.gen_max_min_avg_table()
-            write_table(s_table, "summary", args.csv)
-        if args.detail:
             d_table = analyzer.gen_detail_table()
+            t_table = analyzer.gen_total_time_table()
+            write_table(s_table, "summary", args.csv)
             write_table(d_table, "detail", args.csv)
+            write_table(t_table, "total", args.csv)
+        else:
+            if args.total:
+                t_table = analyzer.gen_total_time_table()
+                write_table(t_table, "total", args.csv)
+            if args.summary:
+                s_table = analyzer.gen_max_min_avg_table()
+                write_table(s_table, "summary", args.csv)
+            if args.detail:
+                d_table = analyzer.gen_detail_table()
+                write_table(d_table, "detail", args.csv)
+    
+    elif args.compare and args.lhs_path and args.rhs_path:
+        analyzer1 = Analyzer(args.lhs_path)
+        analyzer2 = Analyzer(args.rhs_path)
+        if args.csv:
+            table_str = gen_module_compare_table_str(analyzer1, analyzer2)
+            with open("/tmp/compare.csv", "w") as f:
+                f.write(table_str)
+                f.close()
+        else:
+            tables = gen_module_compare_tables(analyzer1, analyzer2)
+            for table in tables:
+                print(table)
+
+        
+
     
 
 
