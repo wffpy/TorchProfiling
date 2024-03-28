@@ -59,6 +59,9 @@ python -m module_logging --path 7.log --csv
 #compare mode
 python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log
 
+# compare mode and write to csv: /tmp/compare.csv
+python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log --csv
+
 ```
 
 ### 2. 统计C函数调用次数
