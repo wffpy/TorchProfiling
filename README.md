@@ -15,7 +15,7 @@ bash build.sh
 
 ## User Guide
 
-### Get Profiling Data
+### 1. Get Profiling Data
 #### step 1: Profiling
 
 ##### Usage 1: not display torch.Module
@@ -56,9 +56,12 @@ python -m module_logging --path 7.log --all
 # write table to csv: /tmp/total.csv
 python -m module_logging --path 7.log --csv
 
+#compare mode
+python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log
+
 ```
 
-### 统计C函数调用次数
+### 2. 统计C函数调用次数
 ```
 import module_logging
 module_logging.Hook.install_hook()
