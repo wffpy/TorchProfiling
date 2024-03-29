@@ -20,21 +20,19 @@ bash build.sh
 
 ##### Usage 1: not display torch.Module
 ```
-import module_logging as m
-m.Hook.install_hook()
+import module_logging as ml
 
-with m.logger.PerformanceLogger():
+with ml.logger.combined_context():
     model()
 
 ```
 
 ##### Usage 2: display the torch.Module
 ```
-import module_logging as m
-m.Hook.install_hook()
+import module_logging as ml
 
 m = model
-with m.logger.PerformanceLogger(m):
+with ml.logger.combined_context(m):
     m()
 
 ```
