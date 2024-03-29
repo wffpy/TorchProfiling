@@ -69,6 +69,7 @@ module_logging.Hook.install_hook()
 
 python test.py
 ```
+![image](https://github.com/wffpy/TorchProfiling/tree/main/IMG/count.jpg)
 
 ### 3. 打印C函数的调用栈
 ```
