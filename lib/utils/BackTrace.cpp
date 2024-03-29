@@ -103,7 +103,7 @@ Tracer::Tracer(std::string name)
     trace();
     const char *print_backtrace = std::getenv("PRINT_BACKTRACE");
     if (print_backtrace &&
-        (print_backtrace == "true" || print_backtrace == "TRUE")) {
+        (std::string(print_backtrace) == "true" || std::string(print_backtrace) == "TRUE")) {
         print();
     }
 }
@@ -113,11 +113,12 @@ void Tracer::trace() {
     real_size = backtrace(buffer, max_depth);
     // buffer[0]: address of trace()
     // buffer[1]: address of local hook function (xpu_wait())
+    // buffer[2]: address of the CpuHookWrapper::local_xpu_wait() 
     // buffer[2]: address of the caller function of xpu_wait()
-    if (real_size < 3) {
+    if (real_size < 4) {
         return;
     }
-    void *addr = buffer[2];
+    void *addr = buffer[3];
     Dl_info info;
     if (dladdr(addr, &info)) {
         std::string lib_abs_name = info.dli_fname;
