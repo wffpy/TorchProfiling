@@ -23,6 +23,7 @@ if ((CUDA_DEV STREQUAL TRUE) AND CUDA_FOUND)
     target_link_libraries(Hook PRIVATE cuda)
 endif()
 
+target_link_libraries(Hook PUBLIC capstone)
 
 # install(TARGETS Hook DESTINATION ${DST_DIRECTORY_TO_INSTALL})
 

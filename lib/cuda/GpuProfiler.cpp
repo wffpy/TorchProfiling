@@ -1,4 +1,5 @@
 #include "cuda/GpuProfiler.h"
+#include "hook/LocalHook/LocalHook.h"
 
 #ifdef CUDA_DEV
 #include <cuda.h>
@@ -155,10 +156,16 @@ REGISTERHOOK(cudaLaunchKernel, (void *)GpuHookWrapper::local_cuda_launch_kernel,
              (void **)&SingletonGpuHookWrapper::instance()
                  .get_elem()
                  ->oriign_cuda_launch_kernel_);
+
+int(*Target_cudaLaunchKernel)(const void *, dim3, dim3, void **, size_t, cudaStream_t) = nullptr;
 #endif
 
 namespace gpu_profiler {
 void register_gpu_hook() {
     // this function do nothing, but can not remove
+#ifdef CUDA_DEV
+    local_hook::install_local_hook(cudaLaunchKernel, (void*)GpuHookWrapper::local_cuda_launch_kernel, (void**)&Target_cudaLaunchKernel);
+#endif
+
 }
 } // namespace gpu_profiler
