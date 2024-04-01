@@ -36,6 +36,7 @@ class CMakeBuild(build_ext):
                 os.path.basename(self.build_lib),
             ),
             "-DPYBIND11_GET_OPINFO=" + pybind11.__path__[0],
+            "-DCMAKE_GENERATOR=Ninja"
             # '-DCUDA_DEV',
             # '-DPYTHON_INCLUDE_DIR=' + os.environ.get('PYTHON_INCLUDE_DIR'),
             # '-DPYTHON_LIBRARY=' + os.environ.get('PYTHON_LIBRARY'),
@@ -55,6 +56,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(
             ["cmake", f"{script_dir}"] + cmake_args + ninja_args, cwd=build_dir
         )
+        print(f"cmake build_dir {build_dir}")
         subprocess.check_call(["cmake", "--build", "."], cwd=build_dir)
         # subprocess.check_call([f'{install_cmd}', 'install'], cwd=build_dir)
 
@@ -63,7 +65,7 @@ setup(
     name="module_logging",
     version="1.0.0",
     author="Eric.Wang",
-    author_email="wangfangfei@baidu.com",
+    author_email="https://github.com/wffpy/TorchProfiling",
     description="logging on moudle and aten op level",
     packages=find_packages(where="python"),
     package_dir={"": os.path.join(script_dir, "python")},
