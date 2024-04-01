@@ -5,7 +5,7 @@ import torch.distributed as dist
 from torch.utils._python_dispatch import TorchDispatchMode
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
-
+from logger import Logger
 
 MODULE_COUNTER = 0
 
@@ -58,28 +58,28 @@ class PerformanceLogger(TorchDispatchMode):
     def pre_forward_hook_wrapper(self, name):
         def pre_forward_hook(module, input):
             torch.cuda.synchronize()
-            print("[BEGIN FORWARD]: {}".format(name))
+            Logger.info("[BEGIN FORWARD]: {}".format(name))
 
         return pre_forward_hook
 
     def post_forward_hook_wrapper(self, name):
         def post_forward_hook(module, input, output):
             torch.cuda.synchronize()
-            print("[END FORWARD]: {}".format(name))
+            Logger.info("[END FORWARD]: {}".format(name))
 
         return post_forward_hook
 
     def pre_backward_hook_wrapper(self, name):
         def pre_backward_hook(module, input):
             torch.cuda.synchronize()
-            print("[BEGIN BACKWARD]: {}_backward".format(name))
+            Logger.info("[BEGIN BACKWARD]: {}_backward".format(name))
 
         return pre_backward_hook
 
     def post_backward_hook_wrapper(self, name):
         def post_backward_hook(module, input, output):
             torch.cuda.synchronize()
-            print("[END BACKWARD]: {}_backward".format(name))
+            Logger.info("[END BACKWARD]: {}_backward".format(name))
 
         return post_backward_hook
 
@@ -94,7 +94,7 @@ class PerformanceLogger(TorchDispatchMode):
         if kwargs is None:
             kwargs = {}
         #  insert pre-op delimiter
-        print("[START_SYMBOL]: {}".format(str(op)))
+        Logger.info("[START_SYMBOL]: {}".format(str(op)))
 
         # call op
         torch.cuda.synchronize()
@@ -102,13 +102,14 @@ class PerformanceLogger(TorchDispatchMode):
         torch.cuda.synchronize()
 
         #  insert after-op delimiter
-        print("[END_SYMBOL]: {}".format(str(op)))
+        Logger.info("[END_SYMBOL]: {}".format(str(op)))
         return output
 
 class TorchFunctionLog(TorchFunctionMode):
     def __torch_function__(self, func, types, args, kwargs=None):
         # 打印 torch module接口
-        print(f"Torch Function Log: {resolve_name(func)}(*{args}, **{kwargs})\n")
+        Logger.info(f"Torch Function Log: {resolve_name(func)}")
+        Logger.debug(f"{resolve_name(func)}(*{args}, **{kwargs})")
         return func(*args, **(kwargs or {}))
 
 

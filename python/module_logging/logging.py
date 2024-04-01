@@ -27,11 +27,11 @@ class Logger(object):
     @staticmethod
     def debug(msg):
         if enable_debug:
-            Logger.print_c("DEBUG: {}".format(msg), Color.RED)
+            Logger.print_c("{}".format(msg), Color.RED)
 
     @staticmethod
     def info(msg):
-        Logger.print_c("INFO: {}".format(msg), Color.GREEN)
+        Logger.print_c("{}".format(msg), Color.GREEN)
 
     @staticmethod
     def warn(msg):
