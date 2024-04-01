@@ -1,13 +1,14 @@
 import time
-
+import os
 import torch
 import torch.distributed as dist
 from torch.utils._python_dispatch import TorchDispatchMode
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
-from logger import Logger
+from logging import Logger
 
 MODULE_COUNTER = 0
+print_rank = int(os.environ.get("PRINT_RANK", 0))
 
 
 def get_module_index():
@@ -15,10 +16,12 @@ def get_module_index():
     MODULE_COUNTER += 1
     return MODULE_COUNTER
 
+
 class PerformanceLogger(TorchDispatchMode):
     """
     insert delimiters before and and after op execution
     """
+
     def __init__(self, model=None) -> None:
         super().__init__()
         # traverse modules and register forward and backward hooks for each
@@ -33,9 +36,9 @@ class PerformanceLogger(TorchDispatchMode):
                 for name, m in m_tuple:
                     self._register_hook(name, m)
 
-    def get_named_modules(self, module:torch.nn.Module, prefix=""):
+    def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
-        m_name = module.__class__.__name__  if prefix == "" else prefix
+        m_name = module.__class__.__name__ if prefix == "" else prefix
         stack.append((m_name, module))
         acc_index = 0
         while acc_index < len(stack):
@@ -58,28 +61,28 @@ class PerformanceLogger(TorchDispatchMode):
     def pre_forward_hook_wrapper(self, name):
         def pre_forward_hook(module, input):
             torch.cuda.synchronize()
-            Logger.info("[BEGIN FORWARD]: {}".format(name))
+            print("[BEGIN FORWARD]: {}".format(name))
 
         return pre_forward_hook
 
     def post_forward_hook_wrapper(self, name):
         def post_forward_hook(module, input, output):
             torch.cuda.synchronize()
-            Logger.info("[END FORWARD]: {}".format(name))
+            print("[END FORWARD]: {}".format(name))
 
         return post_forward_hook
 
     def pre_backward_hook_wrapper(self, name):
         def pre_backward_hook(module, input):
             torch.cuda.synchronize()
-            Logger.info("[BEGIN BACKWARD]: {}_backward".format(name))
+            print("[BEGIN BACKWARD]: {}_backward".format(name))
 
         return pre_backward_hook
 
     def post_backward_hook_wrapper(self, name):
         def post_backward_hook(module, input, output):
             torch.cuda.synchronize()
-            Logger.info("[END BACKWARD]: {}_backward".format(name))
+            print("[END BACKWARD]: {}_backward".format(name))
 
         return post_backward_hook
 
@@ -94,7 +97,7 @@ class PerformanceLogger(TorchDispatchMode):
         if kwargs is None:
             kwargs = {}
         #  insert pre-op delimiter
-        Logger.info("[START_SYMBOL]: {}".format(str(op)))
+        print("[START_SYMBOL]: {}".format(str(op)))
 
         # call op
         torch.cuda.synchronize()
@@ -102,13 +105,14 @@ class PerformanceLogger(TorchDispatchMode):
         torch.cuda.synchronize()
 
         #  insert after-op delimiter
-        Logger.info("[END_SYMBOL]: {}".format(str(op)))
+        print("[END_SYMBOL]: {}".format(str(op)))
         return output
+
 
 class TorchFunctionLog(TorchFunctionMode):
     def __torch_function__(self, func, types, args, kwargs=None):
         # 打印 torch module接口
-        Logger.info(f"Torch Function Log: {resolve_name(func)}")
+        print(f"Torch Function Log: {resolve_name(func)}")
         Logger.debug(f"{resolve_name(func)}(*{args}, **{kwargs})")
         return func(*args, **(kwargs or {}))
 
@@ -119,6 +123,7 @@ def TorchFunctionLogAndPerformanceLogger(model):
         with PerformanceLogger(model):
             yield
 
+
 @contextmanager
 def combined_context(model):
     """
@@ -128,7 +133,7 @@ def combined_context(model):
     # 判断是否处于分布式环境中
     if dist.is_available() and dist.is_initialized():
         rank = dist.get_rank()
-        if rank == 0:
+        if rank == print_rank:
             with TorchFunctionLogAndPerformanceLogger(model):
                 yield
         else:

@@ -4,10 +4,8 @@ from asyncore import write
 import pathlib
 import sys
 from .analysis_xpu_log import parse_log as parse_xpu_log
-from .analysis_gpu_log import parse_log as parse_gpu_log
-from .analysis_xpu_without_xdnn_pytorch import parse_log as parse_xpu_log2
-import prettytable as pt
 from .analysis import Analyzer, gen_module_compare_tables, gen_module_compare_table_str
+import prettytable as pt
 
 # import analysis_gpu_log
 # import analysis_xpu_log
@@ -31,9 +29,7 @@ def parse_args():
         "--csv", action="store_true", help="write tables to csv files"
     )
 
-    arg_parser.add_argument(
-        "--all", action="store_true", help="generate all tables"
-    )
+    arg_parser.add_argument("--all", action="store_true", help="generate all tables")
 
     arg_parser.add_argument(
         "--detail", action="store_true", help="generate detail table"
@@ -61,10 +57,10 @@ def parse_args():
 
 
 def write_table(table, table_name=None, csv=False):
-    '''
+    """
     Function:
     write table to csv file or print to stdout
-    '''
+    """
     if csv and table_name:
         with open("/tmp/{}.csv".format(table_name), "w") as f:
             f.write(table.get_string())
@@ -100,7 +96,7 @@ def parse_log():
             if args.detail:
                 d_table = analyzer.gen_detail_table()
                 write_table(d_table, "detail", args.csv)
-    
+
     elif args.compare and args.lhs_path and args.rhs_path:
         analyzer1 = Analyzer(args.lhs_path)
         analyzer2 = Analyzer(args.rhs_path)
@@ -113,14 +109,3 @@ def parse_log():
             tables = gen_module_compare_tables(analyzer1, analyzer2)
             for table in tables:
                 print(table)
-
-        
-
-    
-
-
-
-
-
-
-        
