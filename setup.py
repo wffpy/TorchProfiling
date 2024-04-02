@@ -21,7 +21,8 @@ class CMakeBuild(build_ext):
             self.build_extension(ext)
         # Install .pth file
         src = os.path.join(os.path.dirname(__file__), "module_logging.pth")
-        dst = os.path.join(self.install_lib, os.path.basename(src))
+        install_lib = self.get_finalized_command('install_lib').install_dir
+        dst = os.path.join(install_lib, os.path.basename(src))
         self.copy_file(src, dst)
 
     def build_extension(self, ext):
