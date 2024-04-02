@@ -21,7 +21,7 @@ class CMakeBuild(build_ext):
             self.build_extension(ext)
         # Install .pth file
         src = os.path.join(os.path.dirname(__file__), "module_logging.pth")
-        install_lib = self.get_finalized_command('install_lib').install_dir
+        install_lib = self.get_finalized_command("install_lib").install_dir
         dst = os.path.join(install_lib, os.path.basename(src))
         self.copy_file(src, dst)
 
@@ -40,7 +40,7 @@ class CMakeBuild(build_ext):
                 os.path.basename(self.build_lib),
             ),
             "-DPYBIND11_GET_OPINFO=" + pybind11.__path__[0],
-            "-DCMAKE_GENERATOR=Ninja"
+            "-DCMAKE_GENERATOR=Ninja",
             # '-DCUDA_DEV',
             # '-DPYTHON_INCLUDE_DIR=' + os.environ.get('PYTHON_INCLUDE_DIR'),
             # '-DPYTHON_LIBRARY=' + os.environ.get('PYTHON_LIBRARY'),
