@@ -32,9 +32,13 @@ int callback(struct dl_phdr_info *info, size_t size, void *data) {
     SymAddr *dynsym = NULL;    // .dynsym 段起始地址
 
     HookRegistrar *reg = HookRegistrar::instance();
+    std::string name_str = lib_name;
+    // std::cout << ">>>>>>>>>>>lib_name: " << lib_name << std::endl;
     if (reg->get_hook_num() > 0) {
+        std::cout << "#############" << std::endl;
         reg->try_get_origin_func(lib_name);
     }
+    // std::cout << ">>>>>>>>>>>lib_name: " << lib_name << std::endl;
 
     // 遍历当前动态库中所有段的信息
     for (size_t i = 0; i < info->dlpi_phnum; i++) {
@@ -97,11 +101,18 @@ void install_hook() {
             int r_sym = ELF64_R_SYM(entry->r_info);
             int st_name = plt_info.dynsym[r_sym].st_name;
             char *name = &plt_info.dynstr[st_name];
+            // std::cout << "found lib name: " << plt_info.lib_name << std::endl;
             // std::cout << "sym name: " << name << std::endl;
+            std::string lib_name = plt_info.lib_name;
+            auto iter = lib_name.find("Hook");
+            if (iter != std::string::npos) {
+                continue;
+            }
             for (auto hook_info : reg->get_hooks()) {
                 if (std::string(name) == hook_info->sym_name) {
-                    std::cout << "found func: " << hook_info->sym_name
-                              << std::endl;
+                    // std::cout << "found lib name: " << plt_info.lib_name << std::endl;
+                    // std::cout << "found func: " << hook_info->sym_name
+                            //   << std::endl;
                     uintptr_t hook_point =
                         (uintptr_t)(plt_info.base_addr + entry->r_offset);
                     *(void **)hook_point = (void *)hook_info->new_func;
@@ -127,17 +138,20 @@ HookRegistrar *HookRegistrar::instance() {
 
 void HookRegistrar::try_get_origin_func(std::string lib_name) {
     for (auto hook_ptr : hooks_) {
-        if (*(hook_ptr->origin_func) == nullptr) {
+        // if (*(hook_ptr->origin_func) == nullptr) {
             void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
+            // std::cout << "to find name: " << hook_ptr->sym_name << std::endl;
             void *func_ptr = dlsym(handle, hook_ptr->sym_name.c_str());
             if (func_ptr) {
+                // std::cout << "lib name: " << hook_ptr->sym_name << std::endl;
+                // std::cout << "handle addr: " << std::hex << (uintptr_t)func_ptr << std::endl;
                 *(hook_ptr->origin_func) = func_ptr;
                 --hook_num_;
             }
             if (hook_num_ == 0) {
                 break;
             }
-        }
+        // }
     }
 }
 
@@ -145,6 +159,19 @@ HookRegistration::HookRegistration(std::string name, void *new_func,
                                    void **old_func) {
     static HookRegistrar *reg = HookRegistrar::instance();
     reg->register_hook(HookInfo{name, new_func, old_func});
+}
+
+
+int analysis_lib_name(struct dl_phdr_info *info, size_t size, void *data) {
+    const char *lib_name = info->dlpi_name;
+    auto vec = static_cast<std::vector<std::string>*>(data);
+    vec->emplace_back(lib_name);
+    return 0;
+}
+std::vector<std::string> get_libs() {
+    std::vector<std::string> lib_vec;
+    dl_iterate_phdr(analysis_lib_name, (void *)&lib_vec);
+    return lib_vec;
 }
 
 } // namespace cfunc_hook

@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <vector>
 namespace cfunc_hook {
 
 struct HookInfo {
@@ -53,6 +54,8 @@ class HookRegistration {
 //     static std::once_flag flag;
 //     static HookWrapper* inst;
 // };
+
+std::vector<std::string> get_libs();
 
 void install_hook();
 

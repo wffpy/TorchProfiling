@@ -8,7 +8,9 @@ target_link_libraries(Hook PRIVATE hook)
 target_link_libraries(Hook PRIVATE CpuHook)
 target_link_libraries(Hook PRIVATE Util)
 target_link_libraries(Hook PRIVATE GpuHook)
+target_link_libraries(Hook PRIVATE LocalHook)
 
+target_link_libraries(Hook PRIVATE capstone)
 
 target_include_directories(Hook PUBLIC ${Python3_INCLUDE_DIRS})
 
@@ -23,9 +25,6 @@ if ((CUDA_DEV STREQUAL TRUE) AND CUDA_FOUND)
     target_link_libraries(Hook PRIVATE cuda)
 endif()
 
-target_link_libraries(Hook PUBLIC capstone)
-
-# install(TARGETS Hook DESTINATION ${DST_DIRECTORY_TO_INSTALL})
 
 set_target_properties(Hook
     PROPERTIES
