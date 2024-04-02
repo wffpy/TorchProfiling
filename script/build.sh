@@ -1,11 +1,15 @@
 #!/bin/bash
 set -exuo pipefail
 
-# 检查当前用户是否为 root
+# 定义 SUDO_CMD 变量的默认值
+SUDO_CMD=""
+
+# 检查当前用户是否为 root，并设置 SUDO_CMD 变量
 if [ "$(id -u)" -ne 0 ]; then
     SUDO_CMD="sudo"
 fi
 
+# 使用 SUDO_CMD 执行 apt 命令
 $SUDO_CMD apt update || true
 $SUDO_CMD apt install libcapstone-dev ninja-build || true
 

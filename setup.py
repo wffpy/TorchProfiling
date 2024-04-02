@@ -19,11 +19,14 @@ class CMakeBuild(build_ext):
     def run(self):
         for ext in self.extensions:
             self.build_extension(ext)
+        # Install .pth file
+        src = os.path.join(os.path.dirname(__file__), "module_logging.pth")
+        dst = os.path.join(self.install_lib, os.path.basename(src))
+        self.copy_file(src, dst)
 
     def build_extension(self, ext):
 
         ninja_args = []
-        install_cmd = "make"
         enable_cuda = os.environ.get("CUDA_DEV")
 
         cmake_args = [
@@ -58,7 +61,6 @@ class CMakeBuild(build_ext):
         )
         print(f"cmake build_dir {build_dir}")
         subprocess.check_call(["cmake", "--build", "."], cwd=build_dir)
-        # subprocess.check_call([f'{install_cmd}', 'install'], cwd=build_dir)
 
 
 setup(
