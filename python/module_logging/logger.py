@@ -112,9 +112,11 @@ class PerformanceLogger(TorchDispatchMode):
 class TorchFunctionLog(TorchFunctionMode):
     def __torch_function__(self, func, types, args, kwargs=None):
         # 打印 torch module接口
-        print(f"[PYTORCH FUNCTION]: {resolve_name(func)}", flush=True)
+        print(f"[PYTORCH_FUNCTION_START]: {resolve_name(func)}", flush=True)
+        ret = func(*args, **(kwargs or {}))
+        print(f"[PYTORCH_FUNCTION_END]: {resolve_name(func)}", flush=True)
         # print(f"{resolve_name(func)}(*{args}, **{kwargs})", flush=True)
-        return func(*args, **(kwargs or {}))
+        return ret
 
 
 @contextmanager

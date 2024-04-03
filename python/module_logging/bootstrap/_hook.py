@@ -47,7 +47,6 @@ def module_hook(fullname, module):
 
 
 def func_wrapper(func):
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         global times

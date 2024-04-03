@@ -26,7 +26,6 @@ class CMakeBuild(build_ext):
         self.copy_file(src, dst)
 
     def build_extension(self, ext):
-
         ninja_args = []
         enable_cuda = os.environ.get("CUDA_DEV")
 
