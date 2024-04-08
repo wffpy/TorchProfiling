@@ -127,7 +127,7 @@ def TorchFunctionLogAndPerformanceLogger(model):
 
 
 @contextmanager
-def combined_context(model):
+def combined_context(model=None):
     """
     with combined_context(model):
         train()
