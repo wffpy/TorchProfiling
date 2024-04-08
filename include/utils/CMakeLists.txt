@@ -1,1 +1,2 @@
 add_subdirectory(ConsoleTable)
+add_subdirectory(Log)

@@ -1,0 +1,1 @@
+add_library(Log STATIC Log.cpp)

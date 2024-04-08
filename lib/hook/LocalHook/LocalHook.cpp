@@ -16,15 +16,16 @@
 #include "capstone/x86.h"
 
 #include "utils/Utils.h"
+#include "utils/Log/Log.h"
 #include "hook/CFuncHook.h"
 
 namespace local_hook {
 
-#define CHECK(cond, str) \
-    if (!cond) {         \
-        std::cout << "error: " << str << std::endl; \
-        exit(-1);                                   \
-    }
+// #define CHECK(cond, str) \
+//     if (!cond) {         \
+//         std::cout << "error: " << str << std::endl; \
+//         exit(-1);                                   \
+//     }
 
 uintptr_t find_free_address(uintptr_t aligned_addr, size_t size) {
     pid_t pid = getpid();
@@ -72,47 +73,47 @@ struct X64Instructions {
     uint32_t numBytes;
 };
 
-int64_t check_func_mem(void *function) {
-    csh handle;
-    auto s = cs_open(CS_ARCH_X86, CS_MODE_64, &handle);
-    if (s != 0) {
-        std::cout << "Error opening capstone handle" << std::endl;
-    }
-    s = cs_option(handle, CS_OPT_DETAIL,
-                  CS_OPT_ON); // we need details enabled for relocating RIP
-                              // relative instrs
-    if (s != 0) {
-        std::cout << "Error set option" << std::endl;
-    }
+// int64_t check_func_mem(void *function) {
+//     csh handle;
+//     auto s = cs_open(CS_ARCH_X86, CS_MODE_64, &handle);
+//     if (s != 0) {
+//         std::cout << "Error opening capstone handle" << std::endl;
+//     }
+//     s = cs_option(handle, CS_OPT_DETAIL,
+//                   CS_OPT_ON); // we need details enabled for relocating RIP
+//                               // relative instrs
+//     if (s != 0) {
+//         std::cout << "Error set option" << std::endl;
+//     }
 
-    uint32_t byte_count = 0;
+//     uint32_t byte_count = 0;
 
-    // for cpu with BIT check, the first instruction of a function is endbr
-    // endbr64 instruction: 0xfa1e0ff3
-    uint32_t endbr64 = 0xfa1e0ff3;
-    uint8_t *code = (uint8_t *)function;
-    if (endbr64 == *(uint32_t *)function) {
-        code = (uint8_t *)function + 4;
-        byte_count += 4;
-    }
+//     // for cpu with BIT check, the first instruction of a function is endbr
+//     // endbr64 instruction: 0xfa1e0ff3
+//     uint32_t endbr64 = 0xfa1e0ff3;
+//     uint8_t *code = (uint8_t *)function;
+//     if (endbr64 == *(uint32_t *)function) {
+//         code = (uint8_t *)function + 4;
+//         byte_count += 4;
+//     }
 
-    cs_insn *disassembled_instrs = nullptr;
-    size_t count =
-        cs_disasm(handle, code, 50, (uint64_t)code, 0, &disassembled_instrs);
-    if (count == 0) {
-        s = cs_errno(handle);
-        std::cout << "error status: " << cs_strerror(s) << std::endl;
-    }
+//     cs_insn *disassembled_instrs = nullptr;
+//     size_t count =
+//         cs_disasm(handle, code, 50, (uint64_t)code, 0, &disassembled_instrs);
+//     if (count == 0) {
+//         s = cs_errno(handle);
+//         std::cout << "error status: " << cs_strerror(s) << std::endl;
+//     }
 
-    for (int32_t i = 0; i < count; ++i) {
-        cs_insn &inst = disassembled_instrs[i];
-        byte_count += inst.size;
-    }
+//     for (int32_t i = 0; i < count; ++i) {
+//         cs_insn &inst = disassembled_instrs[i];
+//         byte_count += inst.size;
+//     }
 
-    cs_free(disassembled_instrs, count);
-    cs_close(&handle);
-    return byte_count;
-}
+//     cs_free(disassembled_instrs, count);
+//     cs_close(&handle);
+//     return byte_count;
+// }
 
 X64Instructions steal_bytes(void *function, int64_t bytes) {
     // Disassemble stolen bytes
@@ -179,6 +180,9 @@ void enable_mem_write(void *func) {
     }
 }
 
+class LocalHook {
+};
+
 void write_absolute_jump64(void *relay_func_mem, void *jmp_target) {
     // uint8_t abs_jmp_instrs[] = {0xf3, 0x0f, 0x1e, 0xfa, 0x49, 0xBA,
     uint8_t abs_jmp_instrs[] = {0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -239,7 +243,6 @@ bool check_mem_offset(int64_t offset, int64_t bytes) {
         return false;
     }
     }
-    std::cout << "finish check" << std::endl;
     return false;
 }
 
@@ -266,10 +269,6 @@ bool relocate_instruction(cs_insn& inst, void *new_addr) {
                 return false;
             }
             op->mem.disp = disp;
-            // if (bytes == 4) {
-                // int32_t disp_4bytes = (int32_t)disp;
-                // memcpy(&inst.bytes[2], &disp_4bytes, 4);
-            // }
         }
     }
     return true;
@@ -494,7 +493,7 @@ void rewrite_cmpl_instruction(cs_insn &inst, uint8_t *write_addr,
 int64_t gen_cmpl_with_register(uint64_t lhs, uint64_t rhs, void* store_mem) {
     // mov r10, 0x0000000000000000
     uint8_t mov_r10_instr[] = {0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    // mov r9, 0x0000000000000000
+    // mov r11, 0x0000000000000000
     // uint8_t mov_r9_instr[] = {0x49, 0xB9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     uint8_t mov_r9_instr[] = {0x49, 0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     // cmp r9, r10
@@ -661,7 +660,7 @@ void install_local_hook(void *hooked_func, void *payload_func,
     // std::cout << "addr_distance: " << std::hex << addr_distance << std::endl;
     // if (INT32_MIN < addr_distance < INT32_MAX) {
     void *hook_mem = alloc_page_near_address(hooked_func);
-    int64_t trampoline_distance =  (uint64_t)hook_mem - (uint64_t)hooked_func;
+    int64_t trampoline_distance = (uint64_t)hook_mem - (uint64_t)hooked_func;
     int64_t try_stolen_bytes = trampoline_distance < INT32_MAX && trampoline_distance > INT32_MIN ? 5 : 13;
     std::cout << "try_stolen_bytes: " << try_stolen_bytes << std::endl;
     if (false) {
