@@ -12,7 +12,6 @@ class Logger {
     Logger(std::string file_name, std::string func_name, int line);
     Logger(std::string file_name, std::string func_name, int line,
            LogLevel level);
-    // Logger(LogLevel level);
     ~Logger();
     template <typename T> Logger &operator<<(const T &value) {
         os_stream_ << value;
@@ -23,14 +22,27 @@ class Logger {
 
   private:
     std::string level_str();
+    void gen_prefix();
     LogLevel level_;
     std::ostringstream os_stream_;
 };
 } // namespace log_module
 
+#define LOG()                                                                 \
+    log_module::Logger(__FILE__, __FUNCTION__, __LINE__,                      \
+                       log_module::LogLevel::INFO)
+
 #define WLOG()                                                                 \
     log_module::Logger(__FILE__, __FUNCTION__, __LINE__,                       \
-                       log_module::LogLevel::INFO)
+                       log_module::LogLevel::WARN)
+
+#define ELOG()                                                                 \
+    log_module::Logger(__FILE__, __FUNCTION__, __LINE__,                       \
+                       log_module::LogLevel::ERROR)
+
+#define DLOG()                                                                 \
+    log_module::Logger(__FILE__, __FUNCTION__, __LINE__,                       \
+                       log_module::LogLevel::DEBUG)
 
 #define CHECK(cond, msg)                                                       \
     (!(cond)) ? (std::cerr << "Assertion failed: (" << #cond << "), "                                                                        \
