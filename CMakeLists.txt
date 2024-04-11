@@ -31,8 +31,6 @@ else()
     message(FATAL_ERROR "Python3 not found")
 endif()
 
-find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT
-             REQUIRED) 
 set(PYTHON_EXECUTABLE python3)
 
 #cmake_path(SET python3_path NORMALIZE "${Python3_INCLUDE_DIRS}/../..")
