@@ -20,15 +20,17 @@
 #include "utils/Utils.h"
 
 namespace local_hook {
+
+#ifdef __x86_64__
+
 #define RELATIVE_JUMP_INST_SIZE 5
 #define ABSOLUTE_JUMP_INST_SIZE 13
 #define ENDBR_INST_SIZE 4
 
-// #define CHECK(cond, str) \
-//     if (!cond) {         \
-//         std::cout << "error: " << str << std::endl; \
-//         exit(-1);                                   \
-//     }
+#define ENDBR_INST 0xfa1e0ff3
+#define NOP_INST 0x90
+
+#endif
 
 uintptr_t find_free_address(uintptr_t aligned_addr, size_t size) {
     pid_t pid = getpid();
@@ -125,20 +127,17 @@ X64Instructions steal_bytes(void *function, int64_t bytes) {
     csh handle;
     auto s = cs_open(CS_ARCH_X86, CS_MODE_64, &handle);
     if (s != 0) {
-        std::cout << "Error opening capstone handle" << std::endl;
+        ELOG() << "error opening capstone handle";
     }
-    s = cs_option(handle, CS_OPT_DETAIL,
-                  CS_OPT_ON); // we need details enabled for relocating RIP
-                              // relative instrs
-    if (s != 0) {
-        std::cout << "Error set option" << std::endl;
-    }
+    // we need details enabled for relocating RIP relative instrs
+    s = cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON); 
+    CHECK(s == 0, "error set option");
 
     // for cpu with BIT check, the first instruction of a function is endbr
     // endbr64 instruction: 0xfa1e0ff3
-    uint32_t endbr64 = 0xfa1e0ff3;
+    uint32_t endbr = ENDBR_INST;
     uint8_t *code = (uint8_t *)function;
-    if (endbr64 == *(uint32_t *)function) {
+    if (endbr == *(uint32_t *)function) {
         code = (uint8_t *)function + 4;
     }
 
@@ -147,7 +146,7 @@ X64Instructions steal_bytes(void *function, int64_t bytes) {
                              20 + bytes, &disassembled_instrs);
     if (count == 0) {
         s = cs_errno(handle);
-        std::cout << "error status: " << cs_strerror(s) << std::endl;
+        ELOG() << "error status: " << cs_strerror(s);
     }
 
     // get the instructions covered by the first 9 bytes of the original
@@ -162,9 +161,9 @@ X64Instructions steal_bytes(void *function, int64_t bytes) {
             break;
     }
 
-    // std::cout << std::hex << (void *)code << std::endl;
     // replace instructions in target func wtih NOPs
-    memset((void *)code, 0x90, byte_count);
+    uint8_t nop = NOP_INST; 
+    memset((void *)code, nop, byte_count);
 
     cs_close(&handle);
     return {disassembled_instrs, instr_count, byte_count};
@@ -254,8 +253,8 @@ class HookImpl {
 
 // check if the first instruction is endbr64
 bool HookImpl::has_endbr(void *func_ptr) {
-    uint32_t endbr64 = 0xfa1e0ff3;
-    return *(uint32_t *)func_ptr == endbr64;
+    uint32_t endbr = ENDBR_INST;
+    return *(uint32_t *)func_ptr == endbr;
 }
 
 // check if the instruction is a RIP relative address
@@ -323,7 +322,7 @@ bool is_rip_relative_inst(cs_insn &inst) {
 }
 
 bool check_mem_offset(int64_t offset, int64_t bytes) {
-    std::cout << "input bytes: " << bytes << std::endl;
+    DLOG() << "offset: " << offset << ", bytes: " << bytes;
     switch (bytes) {
     case 1: {
         return INT8_MIN < offset && offset < INT8_MAX;
@@ -332,15 +331,13 @@ bool check_mem_offset(int64_t offset, int64_t bytes) {
         return INT16_MIN < offset && offset < INT16_MAX;
     }
     case 4: {
-        std::cout << "with bytes 4 !!!!!!" << std::endl;
         return INT32_MIN < offset && offset < INT32_MAX;
     }
     case 8: {
         return INT64_MIN < offset && offset < INT64_MAX;
     }
     default: {
-        std::cout << "Unsupported operand size: " << bytes << std::endl;
-        exit(0);
+        ELOG() << "Unsupported operand size: " << bytes;
         return false;
     }
     }
@@ -424,7 +421,6 @@ bool is_jump(cs_insn &inst) {
 }
 
 bool is_cmp(cs_insn &inst) {
-    std::cout << "instruction id: " << inst.id << std::endl;
     if (inst.id == X86_INS_CMP) {
         return true;
     }
@@ -448,11 +444,9 @@ bool is_relative_instr(cs_insn &inst, int64_t inst_type) {
     return false;
 }
 
-uint32_t add_jmp_to_abs_table(cs_insn &inst, uint8_t *write_addr) {
-    // char* jmp_target_addr = (char*)inst.op_str;
+uint32_t extend_jmp_to_abs_table(cs_insn &inst, uint8_t *write_addr) {
     if (!is_jump(inst)) {
-        std::cout << " not a jump instruction: " << inst.mnemonic << std::endl;
-        exit(0);
+        ELOG() << "not a jump instruction: " << inst.mnemonic;
     }
 
     uint64_t target_addr = strtoull(inst.op_str, NULL, 0);
@@ -487,8 +481,7 @@ void rewrite_jmp_instruction(cs_insn &inst, uint8_t *write_addr,
 
     // check jmp offset
     if (!check_mem_offset(jmp_offset, operand_size)) {
-        std::cout << "Invalid jmp offset: " << jmp_offset << std::endl;
-        exit(0);
+        ELOG() << "Invalid jmp offset: " << jmp_offset;
     }
 
     if (1 == operand_size) {
@@ -502,7 +495,7 @@ void rewrite_jmp_instruction(cs_insn &inst, uint8_t *write_addr,
     }
 }
 
-int64_t add_jmp_with_address_to_abs_table(cs_insn &inst, uint8_t *write_addr) {
+int64_t extend_jmp_with_address_to_abs_table(cs_insn &inst, uint8_t *write_addr) {
     cs_x86 *x86 = &(inst.detail->x86);
     int64_t inst_size = inst.size;
     uint64_t inst_addr = inst.address;
@@ -512,17 +505,14 @@ int64_t add_jmp_with_address_to_abs_table(cs_insn &inst, uint8_t *write_addr) {
                                     0x00, 0x00, 0x00, 0x41, 0xFF, 0x22};
 
     int64_t new_insts_size = sizeof(abs_ptr_jmp_instrs);
-    std::cout << "new_insts_size: " << new_insts_size << std::endl;
     int64_t operand_cnt = x86->op_count;
     CHECK(operand_cnt == 1, "the operand for jmp is not 1");
     cs_x86_op *op = &(x86->operands[0]);
     CHECK(op->type == X86_OP_MEM && op->mem.base == X86_REG_RIP,
           "the instruction operand is not relative memory address");
     int64_t disp = op->mem.disp;
-    std::cout << "inst addr: " << std::hex << inst_addr << std::endl;
-    std::cout << "disp: " << std::hex << disp << std::endl;
     uint64_t abs_addr = inst_addr + inst_size + disp;
-    std::cout << "abs_addr: " << std::hex << abs_addr << std::endl;
+    DLOG() << "abs_addr: " << std::hex << abs_addr;
     memcpy(&abs_ptr_jmp_instrs[2], &abs_addr, sizeof(abs_addr));
     memcpy(write_addr, abs_ptr_jmp_instrs, new_insts_size);
     return new_insts_size;
@@ -535,19 +525,17 @@ void rewrite_jmp_with_address(cs_insn &inst, uint8_t *write_addr,
     uint8_t jmp_bytes[2] = {0xEB, 0x0};
     int64_t jmp_offset = target_addr - (write_addr + sizeof(jmp_bytes));
     if (jmp_offset > INT8_MAX || jmp_offset < INT8_MIN) {
-        std::cout << "invilid jmp offset for 1 byte: " << jmp_offset
-                  << std::endl;
-        exit(-1);
+        ELOG() << "Invalid jmp offset(not in the range of INT8) : " << jmp_offset;
     }
     uint8_t u8_jmp_offset = jmp_offset;
     memcpy(&jmp_bytes[1], &u8_jmp_offset, sizeof(jmp_bytes) - 1);
 
-    uint8_t nop = 0x90;
+    uint8_t nop = NOP_INST;
     memset(inst.bytes, nop, inst.size);
     memcpy(inst.bytes, jmp_bytes, sizeof(jmp_bytes));
 }
 
-uint32_t add_call_to_abs_table(cs_insn &inst, uint8_t *write_addr,
+uint32_t extend_call_to_abs_table(cs_insn &inst, uint8_t *write_addr,
                                uint8_t *jump_back_addr) {
     uint64_t target_addr = strtoull(inst.op_str, NULL, 0);
     uint32_t written_bytes =
@@ -567,13 +555,14 @@ void rewrite_call_instruction(cs_insn &inst, uint8_t *write_addr,
                               uint8_t *target_addr) {
     int64_t jmp_offset = target_addr - (write_addr + inst.size);
     if (jmp_offset > INT8_MAX || jmp_offset < INT8_MIN) {
-        std::cout << "Invalid jmp offset: " << jmp_offset << std::endl;
-        exit(0);
+        ELOG() << "Invalid jmp offset inner trampoline: " << jmp_offset;
     }
+    // this is jump inner trampoline function,
+    // represent the offset of jmp instruction with 8-bit
     uint8_t u8_jmp_offset = jmp_offset;
     // construct jmp instruction
     uint8_t jmp_bytes[2] = {0xEB, u8_jmp_offset};
-    uint8_t nop = 0x90;
+    uint8_t nop = NOP_INST;
     memset(inst.bytes, nop, inst.size);
     memcpy(inst.bytes, jmp_bytes, sizeof(jmp_bytes));
 }
@@ -582,17 +571,19 @@ void rewrite_cmpl_instruction(cs_insn &inst, uint8_t *write_addr,
                               uint8_t *target_addr) {
     int64_t jmp_offset = target_addr - (write_addr + 2);
     if (jmp_offset > INT8_MAX || jmp_offset < INT8_MIN) {
-        std::cout << "Invalid jmp offset: " << jmp_offset << std::endl;
-        exit(0);
+        ELOG() << "Invalid jmp offset inner trampoline: " << jmp_offset;
     }
+    // this is jump inner trampoline function,
+    // represent the offset of jmp instruction with 8-bit
     uint8_t u8_jmp_offset = jmp_offset;
     // construct jmp instruction
     uint8_t jmp_bytes[2] = {0xEB, u8_jmp_offset};
-    uint8_t nop = 0x90;
+    uint8_t nop = NOP_INST;
     memset(inst.bytes, nop, inst.size);
     memcpy(inst.bytes, jmp_bytes, sizeof(jmp_bytes));
 }
 
+// stor the lhs/rhs into r10/r11, then use 64-bit compare instruction
 int64_t gen_cmpl_with_register(uint64_t lhs, uint64_t rhs, void *store_mem) {
     // mov r10, 0x0000000000000000
     uint8_t mov_r10_instr[] = {0x49, 0xBA, 0x00, 0x00, 0x00,
@@ -602,7 +593,7 @@ int64_t gen_cmpl_with_register(uint64_t lhs, uint64_t rhs, void *store_mem) {
     // 0x00, 0x00};
     uint8_t mov_r9_instr[] = {0x49, 0xBB, 0x00, 0x00, 0x00,
                               0x00, 0x00, 0x00, 0x00, 0x00};
-    // cmp r9, r10
+    // cmp r10, r11
     uint8_t cmp_instr[] = {0x4D, 0x39, 0xD1};
 
     memcpy(&mov_r9_instr[2], &lhs, sizeof(uint64_t));
@@ -636,8 +627,6 @@ int64_t get_imme_from_operand(cs_insn &instr, cs_x86_op &operand) {
         }
     } else {
         CHECK(false, "not support operand type");
-        std::cout << "not support type" << std::endl;
-        exit(-1);
     }
     return val;
 }
@@ -718,20 +707,20 @@ int64_t build_callback(void *func2hook, void *hook_mem, int64_t bytes,
             abs_table_mem += abs_cmp_size;
         } else if (is_relative_jump(inst)) {
             WLOG() << "relative jump instruction: " << inst.id;
-            uint64_t abs_jmp_size = add_jmp_to_abs_table(inst, abs_table_mem);
+            uint64_t abs_jmp_size = extend_jmp_to_abs_table(inst, abs_table_mem);
             rewrite_jmp_instruction(inst, stolen_byte_mem, abs_table_mem);
             abs_table_mem += abs_jmp_size;
         } else if (is_relative_instr(inst, X86_INS_JMP)) {
             WLOG() << "64 bits relative jump instruction: " << inst.id;
             uint64_t abs_jmp_size =
-                add_jmp_with_address_to_abs_table(inst, abs_table_mem);
+                extend_jmp_with_address_to_abs_table(inst, abs_table_mem);
             rewrite_jmp_with_address(inst, stolen_byte_mem, abs_table_mem);
             abs_table_mem += abs_jmp_size;
         } else if (inst.id == X86_INS_CALL) {
             WLOG() << "call instruction: " << inst.id;
             uint8_t *jump_back_addr = stolen_byte_mem + inst.size;
             uint32_t abs_call_size =
-                add_call_to_abs_table(inst, abs_table_mem, jump_back_addr);
+                extend_call_to_abs_table(inst, abs_table_mem, jump_back_addr);
             rewrite_call_instruction(inst, stolen_byte_mem, abs_table_mem);
             abs_table_mem += abs_call_size;
         } else if (is_rip_relative_inst(inst)) {
@@ -749,8 +738,8 @@ int64_t build_callback(void *func2hook, void *hook_mem, int64_t bytes,
 }
 
 bool has_endbr(void *func_ptr) {
-    uint32_t endbr64 = 0xfa1e0ff3;
-    if (endbr64 == *(uint32_t *)func_ptr) {
+    uint32_t endbr = ENDBR_INST;
+    if (endbr == *(uint32_t *)func_ptr) {
         return true;
     }
     return false;
