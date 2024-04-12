@@ -9,14 +9,14 @@ times = 0
 
 class MetaPathFinder:
     def find_module(self, fullname, path=None):
-        print("find_module {}".format(fullname))
+        # print("find_module {}".format(fullname))
         if fullname in _hook_modules:
             return MetaPathLoader()
 
 
 class MetaPathLoader:
     def load_module(self, fullname):
-        print("load_module {}".format(fullname))
+        # print("load_module {}".format(fullname))
         # ``sys.modules`` 中保存的是已经导入过的 module
         if fullname in sys.modules:
             return sys.modules[fullname]
