@@ -62,24 +62,47 @@ class CMakeBuild(build_ext):
         print(f"cmake build_dir {build_dir}")
         subprocess.check_call(["cmake", "--build", "."], cwd=build_dir)
 
+def regular_setup():
+    setup(
+        name="module_logging",
+        version="1.0.0",
+        author="Eric.Wang",
+        author_email="https://github.com/wffpy/TorchProfiling",
+        description="logging on moudle and aten op level",
+        packages=find_packages(where="python"),
+        package_dir={"": os.path.join(script_dir, "python")},
+        package_data={"": ["*"]},
+        install_requires=[
+            "torch",
+        ],
+        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
+        zip_safe=False,
+    )
 
-setup(
-    name="module_logging",
-    version="1.0.0",
-    author="Eric.Wang",
-    author_email="https://github.com/wffpy/TorchProfiling",
-    description="logging on moudle and aten op level",
-    packages=find_packages(where="python"),
-    package_dir={"": os.path.join(script_dir, "python")},
-    package_data={"": ["*"]},
-    install_requires=[
-        "torch",
-        "prettytable",
-    ],
-    entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
-    ext_modules=[
-        CMakeExtension("module_logging.Hook"),
-    ],
-    cmdclass=dict(build_ext=CMakeBuild),
-    zip_safe=False,
-)
+def cpp_extend_setup():
+    setup(
+        name="module_logging",
+        version="1.0.0",
+        author="Eric.Wang",
+        author_email="https://github.com/wffpy/TorchProfiling",
+        description="logging on moudle and aten op level",
+        packages=find_packages(where="python"),
+        package_dir={"": os.path.join(script_dir, "python")},
+        package_data={"": ["*"]},
+        install_requires=[
+            "torch",
+        ],
+        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
+        ext_modules=[
+            CMakeExtension("module_logging.Hook"),
+        ],
+        cmdclass=dict(build_ext=CMakeBuild),
+        zip_safe=False,
+    )
+
+if __name__ == "__main__":
+    compile_option = os.environ.get('COMPIEL_OPTION')
+    if compile_option is not None:
+        regular_setup() 
+    else:
+        cpp_extend_setup()
