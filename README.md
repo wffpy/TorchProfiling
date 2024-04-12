@@ -3,14 +3,19 @@
 ## Build And Install
 ### For Cpu
 ```
-bash build.sh
+// build with cpp extension
+// try to hook some function
+bash scripts/build.sh
 
+// build without cpp extension
+// just profiling cpu kernel, and analysis the log
+bash scripts/build_regular.sh
 ```
 
 ### For Gpu
 ```
 export CUDA_DEV=true
-bash build.sh
+bash scripts/build.sh
 ```
 
 ## User Guide

@@ -185,7 +185,7 @@ class Analyzer:
         self.log_path = path
         # current module name
         self.current_m_name = ""
-        self.collection_state = STATE.BEGIN
+        self.collection_state = STATE.FORMAL
         self.current_op_name = ""
         self.current_op = None
         self.current_module = None
@@ -323,11 +323,11 @@ class Analyzer:
         with open(self.log_path, "r") as f:
             lines = f.readlines()
         for line in lines:
-            self.identify_step_beign_or_end(line)
-            if self.collection_state == STATE.BEGIN:
-                continue
-            elif self.collection_state == STATE.STOP:
-                break
+            # self.identify_step_beign_or_end(line)
+            # if self.collection_state == STATE.BEGIN:
+            #     continue
+            # elif self.collection_state == STATE.STOP:
+                # break
             if self.identify_module_begin(line):
                 continue
             elif self.identify_module_end(line):

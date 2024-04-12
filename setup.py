@@ -5,6 +5,11 @@ from setuptools import setup, find_packages
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import pybind11
+import configparser
+
+# 读取配置文件
+config = configparser.ConfigParser()
+config.read('python/module_logging/config.ini')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -103,6 +108,12 @@ def cpp_extend_setup():
 if __name__ == "__main__":
     compile_option = os.environ.get('COMPIEL_OPTION')
     if compile_option is not None:
+        config['database']['cpp_extend'] = "False"
+        with open('python/module_logging/config.ini', 'w') as configfile:
+            config.write(configfile)
         regular_setup() 
     else:
+        config['database']['cpp_extend'] = "True"
+        with open('python/module_logging/config.ini', 'w') as configfile:
+            config.write(configfile)
         cpp_extend_setup()
