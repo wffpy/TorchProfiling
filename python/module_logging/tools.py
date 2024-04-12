@@ -6,6 +6,7 @@ import sys
 from .analysis_xpu_log import parse_log as parse_xpu_log
 from .analysis import Analyzer, gen_module_compare_tables, gen_module_compare_table_str
 import prettytable as pt
+from .cut_log import extract_section
 
 # import analysis_gpu_log
 # import analysis_xpu_log
@@ -40,7 +41,7 @@ def parse_args():
     )
 
     arg_parser.add_argument(
-        "--total", action="store_false", help="generate summary table"
+        "--total", action="store_false", help="generate total table"
     )
 
     arg_parser.add_argument("--path", type=pathlib.Path, help="path to XPU log file")
@@ -52,6 +53,14 @@ def parse_args():
     arg_parser.add_argument("--lhs_path", type=pathlib.Path, help="path to log file")
 
     arg_parser.add_argument("--rhs_path", type=pathlib.Path, help="path to log file")
+
+    arg_parser.add_argument(
+        "--cut_log", action="store_true", help="split log"
+    )
+
+    arg_parser.add_argument("--begin", action='store', type=str, default="iteration        2", help="path to log file")
+
+    arg_parser.add_argument("--end", action='store', type=str, default="iteration        3", help="path to log file")
 
     return arg_parser.parse_args()
 
@@ -76,7 +85,11 @@ def parse_log():
         void
     """
     args = parse_args()
-    if not args.compare:
+    if args.cut_log:
+        print("args.begin: {}".format(args.begin))
+        print("args.end: {}".format(args.end))
+        extract_section(args.path, args.begin, args.end)
+    elif not args.compare:
         analyzer = Analyzer(args.path)
         analyzer.analysis()
         if args.all:
