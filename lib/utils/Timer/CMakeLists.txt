@@ -1,0 +1,1 @@
+add_library(Timer STATIC Timer.cpp)
