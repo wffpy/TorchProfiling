@@ -16,6 +16,10 @@ void init_hook(pybind11::module& m) {
         local_hook::install_local_hooks();
     });
 
+    m.def("enable_profiling", [](){
+        timer::enable_timer();
+    });
+
     m.def("init_timer", [](int64_t size) {
         timer::init_timer(size);
     });

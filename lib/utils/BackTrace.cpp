@@ -100,10 +100,10 @@ std::string demangle(const char *mangled_name) {
 Tracer::Tracer(std::string name)
     : max_depth(100), real_size(0), func_name(name) {
     stack.reserve(max_depth);
-    trace();
-    const char *print_backtrace = std::getenv("PRINT_BACKTRACE");
+    static const char *print_backtrace = std::getenv("PRINT_BACKTRACE");
     if (print_backtrace &&
         (std::string(print_backtrace) == "true" || std::string(print_backtrace) == "TRUE")) {
+        trace();
         print();
     }
 }

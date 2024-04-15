@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <mutex>
 
 using namespace std::chrono;
 
@@ -61,12 +62,15 @@ class Timer {
     Timer();
     ~Timer();
     Timer(int64_t size);
-    void record_time(std::string ph = "B", std::string name = "launch_async", std::string tid = "runtime api");
+    void record_time(std::string ph = "B", std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
     int64_t get_time();
     void set_size(int64_t size);
     void set_flag();
     void record_duration();
     int64_t get_duration();
+    std::mutex mtx;
+    static void enable_timer();
+    static bool enable;
 
   private:
     high_resolution_clock::time_point start;
@@ -78,8 +82,11 @@ class Timer {
     std::vector<std::string> names;
     std::vector<std::string> phs;
     std::vector<std::string> tids;
+    std::vector<std::string> cnames;
     bool flag = false;
 };
+
+bool Timer::enable = false;
 
 Timer::Timer() : start(high_resolution_clock::now()) {
     pre_time_point = start;
@@ -92,13 +99,18 @@ Timer::Timer(int64_t size) : start(high_resolution_clock::now()) {
     times.reserve(size);
 }
 
-void Timer::record_time(std::string ph, std::string name, std::string tid) {
-    auto time_point = std::chrono::high_resolution_clock::now();
-    times.push_back(time_point);
+void Timer::enable_timer() { enable = true; }
+
+void Timer::record_time(std::string ph, std::string name, std::string tid, std::string cname) {
+    high_resolution_clock::time_point time_point = std::chrono::high_resolution_clock::now();
+    std::unique_lock<std::mutex> lock(mtx);
+    times.push_back(std::move(time_point));
     names.push_back(name);
     tids.push_back(tid);
     phs.push_back(ph);
+    cnames.push_back(cname);
 }
+
 
 int64_t Timer::get_time() {
     auto cur = std::chrono::high_resolution_clock::now();
@@ -118,6 +130,7 @@ void Timer::set_size(int64_t size) {
 void Timer::set_flag() { flag = true; }
 
 void Timer::record_duration() {
+    std::unique_lock<std::mutex> lock(mtx);
     flag = true;
     pre_time_point = sec_time_point;
     sec_time_point = std::chrono::high_resolution_clock::now();
@@ -170,23 +183,39 @@ Timer::~Timer() {
 typedef utils::Singleton<Timer> TimerSingletone;
 
 void init_timer(int64_t size) {
-    TimerSingletone::instance().get_elem()->set_size(size);
+    if (Timer::enable) {
+        TimerSingletone::instance().get_elem()->set_size(size);
+    }
 }
 
 int64_t get_time() {
-    return TimerSingletone::instance().get_elem()->get_time();
+    if (Timer::enable) {
+        return TimerSingletone::instance().get_elem()->get_time();
+    }
+    return 0;
 }
 
-void record_time(std::string ph , std::string name , std::string tid) {
-    TimerSingletone::instance().get_elem()->record_time(ph, name, tid); 
+void record_time(std::string ph , std::string name , std::string tid, std::string cname) {
+    if (Timer::enable) {
+        TimerSingletone::instance().get_elem()->record_time(ph, name, tid, cname); 
+    }
 }
 
 void record_duration() {
-    TimerSingletone::instance().get_elem()->record_duration();
+    if (Timer::enable) {
+        TimerSingletone::instance().get_elem()->record_duration();
+    }
 }
 
 int64_t get_duration() {
-    return TimerSingletone::instance().get_elem()->get_duration();
+    if (Timer::enable) {
+        return TimerSingletone::instance().get_elem()->get_duration();
+    }
+    return 0;
+}
+
+void enable_timer() {
+    Timer::enable = true;
 }
 
 } // namespace timer

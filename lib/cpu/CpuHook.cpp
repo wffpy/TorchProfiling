@@ -4,7 +4,10 @@
 #include "utils/Utils.h"
 #include "utils/Log/Log.h"
 #include "hook/LocalHook/LocalHook.h"
+#include <chrono>
+#include "utils/Timer/Timer.h"
 using namespace cpu_hook;
+using namespace std::chrono;
 
 class CpuHookWrapper {
   public:
@@ -31,10 +34,13 @@ typedef utils::Singleton<CpuHookWrapper> SingletonCpuHookWrapper;
 CpuHookWrapper::~CpuHookWrapper() {}
 
 int CpuHookWrapper::local_launch_async(void *func) {
-    trace::Tracer tracer(__FUNCTION__);
+    // trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_launch_async_ != nullptr) {
-        return wrapper_instance->origin_launch_async_(func);
+        timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/"runtime api");
+        int s = wrapper_instance->origin_launch_async_(func);
+        timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/"runtime api");
+        return s;
     }
     return 0;
 }
@@ -52,7 +58,7 @@ int CpuHookWrapper::local_launch_config(int nclusters, int ncores,
 
 int CpuHookWrapper::local_launch_arg_set(const void *arg, size_t size,
                                          size_t offset) {
-    trace::Tracer tracer(__FUNCTION__);
+    // trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_launch_arg_set_ != nullptr) {
         return wrapper_instance->origin_launch_arg_set_(arg, size, offset);
@@ -61,13 +67,15 @@ int CpuHookWrapper::local_launch_arg_set(const void *arg, size_t size,
 }
 
 int CpuHookWrapper::local_xpu_wait(void *stream) {
-    trace::Tracer tracer(__FUNCTION__);
+    // trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_xpu_wait_ != nullptr) {
-        return wrapper_instance->origin_xpu_wait_(stream);
+        timer::record_time(/*ph=*/"B", /*name=*/"local_xpu_wait", /*runtime api=*/"runtime api", /*cname=*/"good");
+        int status = wrapper_instance->origin_xpu_wait_(stream);
+        timer::record_time(/*ph=*/"E", /*name=*/"local_xpu_wait", /*runtime api=*/"runtime api", /*cname=*/"good");
+        return status;
     } else {
         ELOG() << "origin xpu wait is null";
-        exit(0);
     }
     return 0;
 }
@@ -102,16 +110,16 @@ int local_launch_async(void *func) {
     return Target_launch_async(func);
 }
 
-REGISTER_LOCAL_HOOK(xpu_launch_async, (void *)local_launch_async, (void**)&Target_launch_async);
+// REGISTER_LOCAL_HOOK(xpu_launch_async, (void *)local_launch_async, (void**)&Target_launch_async);
 // REGISTER_LOCAL_HOOK(xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
 //              (void **)&SingletonCpuHookWrapper::instance()
 //                  .get_elem()
 //                  ->origin_launch_async_);
 
-// REGISTERHOOK(xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
-//              (void **)&SingletonCpuHookWrapper::instance()
-//                  .get_elem()
-//                  ->origin_launch_async_);
+REGISTERHOOK(xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
+             (void **)&SingletonCpuHookWrapper::instance()
+                 .get_elem()
+                 ->origin_launch_async_);
 // REGISTERHOOK(xpu_launch_config, (void *)CpuHookWrapper::local_launch_config,
 //              (void **)&SingletonCpuHookWrapper::instance()
 //                  .get_elem()
@@ -122,16 +130,17 @@ REGISTER_LOCAL_HOOK(xpu_launch_async, (void *)local_launch_async, (void**)&Targe
 //                  .get_elem()
 //                  ->origin_launch_arg_set_);
 
-// REGISTERHOOK(
-//     xpu_wait, (void *)CpuHookWrapper::local_xpu_wait,
-//     (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_xpu_wait_);
 REGISTERHOOK(
-    dlsym, (void *)CpuHookWrapper::local_dlsym,
-    (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_dlsym_);
+    xpu_wait, (void *)CpuHookWrapper::local_xpu_wait,
+    (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_xpu_wait_);
 
-REGISTERHOOK(
-    dlopen, (void *)CpuHookWrapper::local_dlopen,
-    (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_dlopen_);
+// REGISTERHOOK(
+//     dlsym, (void *)CpuHookWrapper::local_dlsym,
+//     (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_dlsym_);
+
+// REGISTERHOOK(
+//     dlopen, (void *)CpuHookWrapper::local_dlopen,
+//     (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_dlopen_);
 
 namespace cpu_hook {
 void register_cpu_hook() {
