@@ -34,7 +34,7 @@ typedef utils::Singleton<CpuHookWrapper> SingletonCpuHookWrapper;
 CpuHookWrapper::~CpuHookWrapper() {}
 
 int CpuHookWrapper::local_launch_async(void *func) {
-    // trace::Tracer tracer(__FUNCTION__);
+    trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_launch_async_ != nullptr) {
         timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/"runtime api");
@@ -58,7 +58,7 @@ int CpuHookWrapper::local_launch_config(int nclusters, int ncores,
 
 int CpuHookWrapper::local_launch_arg_set(const void *arg, size_t size,
                                          size_t offset) {
-    // trace::Tracer tracer(__FUNCTION__);
+    trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_launch_arg_set_ != nullptr) {
         return wrapper_instance->origin_launch_arg_set_(arg, size, offset);
@@ -67,7 +67,7 @@ int CpuHookWrapper::local_launch_arg_set(const void *arg, size_t size,
 }
 
 int CpuHookWrapper::local_xpu_wait(void *stream) {
-    // trace::Tracer tracer(__FUNCTION__);
+    trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_xpu_wait_ != nullptr) {
         timer::record_time(/*ph=*/"B", /*name=*/"local_xpu_wait", /*runtime api=*/"runtime api", /*cname=*/"good");

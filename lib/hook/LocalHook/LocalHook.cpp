@@ -827,6 +827,7 @@ void LocalHookRegistrar::add(LocalHookInfo info) { hooks.emplace_back(info); }
 void LocalHookRegistrar::install() {
     auto lib_vec = cfunc_hook::get_libs();
     for (auto &lib_name : lib_vec) {
+        DLOG() << "lib name: " << lib_name;
         void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
         int64_t hook_size = hooks.size();
         for (int64_t index = 0; index < hook_size; index++) {
@@ -835,6 +836,7 @@ void LocalHookRegistrar::install() {
             }
             void *func_ptr = dlsym(handle, hooks[index].symbol.c_str());
             if (func_ptr) {
+                LOG() << "hook function symbol: " << hooks[index].symbol;
                 install_local_hook(func_ptr, hooks[index].new_func,
                                    hooks[index].trampoline);
                 hooks[index].installed = true;

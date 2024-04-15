@@ -1,5 +1,6 @@
 #include "utils/BackTrace.h"
 #include "utils/Utils.h"
+#include "utils/Log/Log.h"
 #include "utils/ConsoleTable/ConsoleTable.h"
 #include <cstdlib>
 #include <cxxabi.h>
@@ -99,10 +100,10 @@ std::string demangle(const char *mangled_name) {
  *******************************************************************************/
 Tracer::Tracer(std::string name)
     : max_depth(100), real_size(0), func_name(name) {
-    stack.reserve(max_depth);
     static const char *print_backtrace = std::getenv("PRINT_BACKTRACE");
     if (print_backtrace &&
         (std::string(print_backtrace) == "true" || std::string(print_backtrace) == "TRUE")) {
+        stack.reserve(max_depth);
         trace();
         print();
     }
@@ -134,7 +135,7 @@ void Tracer::trace() {
 
 void Tracer::print() {
     char **strings = backtrace_symbols(stack.data(), real_size);
-    std::cout << "Stack trace:" << std::endl;
+    LOG() << "Stack Trace: ";
     for (int i = 0; i < real_size; ++i) {
         std::cout << strings[i] << std::endl;
     }

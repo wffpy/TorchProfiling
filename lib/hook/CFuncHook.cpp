@@ -1,5 +1,6 @@
 #include "hook/CFuncHook.h"
 #include "utils/BackTrace.h"
+#include "utils/Log/Log.h"
 #include <functional>
 #include <iostream>
 #include <link.h>
@@ -138,20 +139,19 @@ HookRegistrar *HookRegistrar::instance() {
 
 void HookRegistrar::try_get_origin_func(std::string lib_name) {
     for (auto hook_ptr : hooks_) {
-        // if (*(hook_ptr->origin_func) == nullptr) {
+        if (*(hook_ptr->origin_func) == nullptr) {
             void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
-            // std::cout << "to find name: " << hook_ptr->sym_name << std::endl;
             void *func_ptr = dlsym(handle, hook_ptr->sym_name.c_str());
-            if (func_ptr) {
-                // std::cout << "lib name: " << hook_ptr->sym_name << std::endl;
-                // std::cout << "handle addr: " << std::hex << (uintptr_t)func_ptr << std::endl;
+            if (func_ptr != nullptr) {
+                DLOG() << "hooked func: " << hook_ptr->sym_name;
+                DLOG() << "ptr: " << std::hex << func_ptr;
                 *(hook_ptr->origin_func) = func_ptr;
                 --hook_num_;
             }
             if (hook_num_ == 0) {
                 break;
             }
-        // }
+        }
     }
 }
 
