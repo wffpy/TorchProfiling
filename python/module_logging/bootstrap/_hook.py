@@ -27,7 +27,8 @@ class MetaPathLoader:
         finder = sys.meta_path.pop(0)
         # 导入 module
         module = importlib.import_module(fullname)
-        print(" --------------- ", fullname, " ================== ", module)
+        # 不要在hook中向stdout打印任何语句
+        #print(" --------------- ", fullname, " ================== ", module)
         module_hook(fullname, module)
 
         sys.meta_path.insert(0, finder)
@@ -38,8 +39,8 @@ sys.meta_path.insert(0, MetaPathFinder())
 
 
 def module_hook(fullname, module):
-    print(f"fullname {fullname}")
-    print(f"module {module}")
+    #print(f"fullname {fullname}")
+    #print(f"module {module}")
     if fullname == "torch":
         # TODO 以下backward是等效的, 可能极少数特殊情况下会有重复计数的情况
         module.Tensor.backward = func_wrapper(module.Tensor.backward)
