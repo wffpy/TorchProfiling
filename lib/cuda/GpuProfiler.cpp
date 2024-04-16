@@ -73,13 +73,12 @@ static void print_activity(CUpti_Activity *record) {
     case CUPTI_ACTIVITY_KIND_KERNEL:
     case CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL: {
         CUpti_ActivityKernel4 *kernel = (CUpti_ActivityKernel4 *)record;
-        std::cout << "[XPURT_PROF] " << kernel->name << ": "
-                  << kernel->end - kernel->start << " ns" << std::endl;
+        LOG() << "[XPURT_PROF] " << kernel->name << ": "
+                  << kernel->end - kernel->start << " ns";
         break;
     }
     default:
-        std::cout << "<unknown activity>" << std::endl;
-        exit(-1);
+        ELOG() << "unkonwn activity";
         break;
     }
 }
@@ -88,8 +87,7 @@ void CUPTIAPI buffer_requested(uint8_t **buffer, size_t *size,
                                size_t *maxNumRecords) {
     uint8_t *bfr = (uint8_t *)malloc(BUF_SIZE + ALIGN_SIZE);
     if (bfr == NULL) {
-        std::cout << "Error: out of memory" << std::endl;
-        exit(-1);
+        ELOG() <<  "Error: out of memory";
     }
 
     *size = BUF_SIZE;
@@ -118,8 +116,7 @@ void CUPTIAPI buffer_completed(CUcontext ctx, uint32_t streamId,
         size_t dropped;
         CUPTI_CALL(cuptiActivityGetNumDroppedRecords(ctx, streamId, &dropped));
         if (dropped != 0) {
-            std::cout << "Dropped " << (unsigned int)dropped
-                      << " activity records" << std::endl;
+            LOG() << "dropped " << (unsigned int)dropped << " activity records";
         }
     }
 
@@ -156,15 +153,13 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
     GpuHookWrapper *wrapper_instance =
         SingletonGpuHookWrapper::instance().get_elem();
     if (wrapper_instance->oriign_cuda_launch_kernel_) {
-        std::cout << "cuda_launch_kernel addr: " << std::hex << (uintptr_t)wrapper_instance->oriign_cuda_launch_kernel_ << std::endl;
         wrapper_instance->oriign_cuda_launch_kernel_(func, (gridDim), blockDim,
                                                      args, sharedMem, stream);
     } else {
-        std::cout << "not cuda launch !!!!!!!!!!" << std::endl;
+        ELOG() << "Error: cudaLaunchKernel is not found";
     }
     cudaDeviceSynchronize();
     fini_trace();
-    std::cout << "cudaLaunchKernel !!!!!!!!!!!!!" << std::endl;
 
     return 0;
 }
@@ -174,24 +169,20 @@ int GpuHookWrapper::local_cuda_launch_device(const void *func, void* param_buffe
     GpuHookWrapper *wrapper_instance =
         SingletonGpuHookWrapper::instance().get_elem();
     if (wrapper_instance->oriign_cuda_launch_kernel_) {
-        std::cout << "cuda_launch_kernel addr: " << std::hex << (uintptr_t)wrapper_instance->oriign_cuda_launch_kernel_ << std::endl;
         wrapper_instance->origin_cuda_launch_device_(func, param_buffer,gridDim, blockDim, sharedMemSize, stream);
     } else {
-        std::cout << "not cuda launch !!!!!!!!!!" << std::endl;
+        ELOG() << "Error: cudaLaunchDevice is not found";
     }
-    std::cout << "cudaLaunchKernel !!!!!!!!!!!!!" << std::endl;
     return 0;
 }
 int GpuHookWrapper::local_cuda_graph_launch(cudaGraphExec_t graphExec, cudaStream_t stream) {
     GpuHookWrapper *wrapper_instance =
         SingletonGpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_cuda_graph_launch_) {
-        std::cout << "cuda_launch_kernel addr: " << std::hex << (uintptr_t)wrapper_instance->origin_cuda_graph_launch_ << std::endl;
         wrapper_instance->origin_cuda_graph_launch_(graphExec, stream);
     } else {
-        std::cout << "not cuda launch !!!!!!!!!!" << std::endl;
+        ELOG() << "Error: cudaGraphLaunch is not found";
     }
-    std::cout << "cudaLaunchKernel !!!!!!!!!!!!!" << std::endl;
     return 0;
 
 }
@@ -203,7 +194,7 @@ int GpuHookWrapper::local_cuda_launch(void *func) {
     if (wrapper_instance->oriign_cuda_launch_) {
         wrapper_instance->oriign_cuda_launch_(func);
     } else {
-        std::cout << "not cuda launch !!!!!!!!!!" << std::endl;
+        ELOG() << "Error: cudaLaunch is not found";
     }
     return 0;
 }
@@ -215,7 +206,7 @@ int GpuHookWrapper::local_cuda_launch_kernel_exc(const void* config, const void 
     if (wrapper_instance->origin_cuda_launch_kernel_exc_) {
         wrapper_instance->origin_cuda_launch_kernel_exc_(func, func, args);
     } else {
-        std::cout << "not cuda launch !!!!!!!!!!" << std::endl;
+        ELOG() << "Error: cudaLaunchKernelExC is not found";
     }
     return 0;
 }
@@ -250,40 +241,38 @@ int local_cuda_launch_kernel2(const void *func, dim3 gridDim,
                                              dim3 blockDim, void **args,
                                              size_t sharedMem,
                                              cudaStream_t stream) {
-    std::cout << "local_cuda_launch_kerel2" << std::endl;
     Target_cudaLaunchKernel(func, gridDim, blockDim, args, sharedMem, stream);
     return 0;
 }
 
 int (*Target_cuGetProcAddress)(const char* symbol, void** pfn, int  cudaVersion, cuuint64_t flags, void* symbolStatus ) = nullptr;
 int local_cuGetProcAddress(const char* symbol, void** pfn, int  cudaVersion, cuuint64_t flags, void* symbolStatus ){
-    std::cout << "enter local_cuGetProcessAddress!!!!!!!!!!!!!!!!!1" << std::endl;
-    std::cout << "symbol name: " << symbol << std::endl;
+    DLOG() << __FUNCTION__ << " get symbol: " << symbol;
     return Target_cuGetProcAddress(symbol, pfn, cudaVersion, flags, symbolStatus);
 }
 
-// CUresult (*Target_cuLaunchKernel)(CUfunction f, unsigned int  gridDimX, unsigned int  gridDimY,
-CUresult (*Target_cuLaunchKernel)(void* f, unsigned int  gridDimX, unsigned int  gridDimY,
-                                  unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY,
-                                  unsigned int  blockDimZ, unsigned int  sharedMemBytes, void* hStream,
-                                //   void* kernelParams, void* extra) = nullptr;
-                                  void*** kernelParams, void*** extra) = nullptr;
-// CUresult local_cuLaunchKernel(CUfunction f, unsigned int  gridDimX, unsigned int  gridDimY, 
-CUresult local_cuLaunchKernel(void* f, unsigned int  gridDimX, unsigned int  gridDimY, 
-                            unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY,
-                            unsigned int  blockDimZ, unsigned int  sharedMemBytes, void* hStream,
-                            // void* kernelParams, void* extra ) {
-                            void*** kernelParams, void*** extra ) {
-    std::cout << "enter local_cuLaunchKernel!!!!!!!!!!!!!!!!!1" << std::endl;
-    // CUresult ret = Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
-    // cudaDeviceSynchronize();
-    std::cout << "exit local_cuLaunchKernel" << std::endl;
-    // return ret;
-    return CUDA_SUCCESS;
-    // return Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
-}
+// // CUresult (*Target_cuLaunchKernel)(CUfunction f, unsigned int  gridDimX, unsigned int  gridDimY,
+// CUresult (*Target_cuLaunchKernel)(void* f, unsigned int  gridDimX, unsigned int  gridDimY,
+//                                   unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY,
+//                                   unsigned int  blockDimZ, unsigned int  sharedMemBytes, void* hStream,
+//                                 //   void* kernelParams, void* extra) = nullptr;
+//                                   void*** kernelParams, void*** extra) = nullptr;
+// // CUresult local_cuLaunchKernel(CUfunction f, unsigned int  gridDimX, unsigned int  gridDimY, 
+// CUresult local_cuLaunchKernel(void* f, unsigned int  gridDimX, unsigned int  gridDimY, 
+//                             unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY,
+//                             unsigned int  blockDimZ, unsigned int  sharedMemBytes, void* hStream,
+//                             // void* kernelParams, void* extra ) {
+//                             void*** kernelParams, void*** extra ) {
+//     std::cout << "enter local_cuLaunchKernel!!!!!!!!!!!!!!!!!1" << std::endl;
+//     // CUresult ret = Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
+//     // cudaDeviceSynchronize();
+//     std::cout << "exit local_cuLaunchKernel" << std::endl;
+//     // return ret;
+//     return CUDA_SUCCESS;
+//     // return Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
+// }
 
-CUresult (*Target_cuLaunchKernel_1)(CUfunction f,
+CUresult (*Target_cuLaunchKernel)(CUfunction f,
                                 unsigned int gridDimX,
                                 unsigned int gridDimY,
                                 unsigned int gridDimZ,
@@ -294,7 +283,7 @@ CUresult (*Target_cuLaunchKernel_1)(CUfunction f,
                                 CUstream hStream,
                                 void **kernelParams,
                                 void **extra) = nullptr;
-CUresult local_cuLaunchKernel_1(CUfunction f,
+CUresult local_cuLaunchKernel(CUfunction f,
                                 unsigned int gridDimX,
                                 unsigned int gridDimY,
                                 unsigned int gridDimZ,
@@ -305,6 +294,7 @@ CUresult local_cuLaunchKernel_1(CUfunction f,
                                 CUstream hStream,
                                 void **kernelParams,
                                 void **extra) {
+
     return Target_cuLaunchKernel_1(f, 
                                 gridDimX,
                                 gridDimY,
@@ -318,51 +308,18 @@ CUresult local_cuLaunchKernel_1(CUfunction f,
                                 extra);
 }
 
+// REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
+REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
 
 #endif
 
 namespace gpu_profiler {
 void register_gpu_hook() {
     // this function do nothing, but can not remove
-#ifdef CUDA_DEV
-    // REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
-    REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
-    // REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel_1, (void**)&Target_cuLaunchKernel_1);
-    // std::cout << "cudaLaunchKernel: " << std::hex << (uintptr_t)cudaLaunchKernel << std::endl;
-    // local_hook::install_local_hook((void*)cudaLaunchKernel, (void*)GpuHookWrapper::local_cuda_launch_kernel, (void**)&Target_cudaLaunchKernel);
-    // local_hook::install_local_hook((void*)cudaLaunchKernel, (void*)local_cuda_launch_kernel2, (void**)&Target_cudaLaunchKernel);
-    // auto lib_vec = cfunc_hook::get_libs(); 
-    // // std::cout << "xxxxxxxxxxxxxxxxxxxxxxxxxxx: " << lib_vec.size() << std::endl;
-    // for (auto lib_name : lib_vec) {
-    //     void* handle = dlopen(lib_name.c_str(), RTLD_LAZY);
-    //     if (handle == nullptr) {
-    //         std::cout << "open lib failed :" << lib_name << std::endl;
-    //         continue;
-    //     }
-    //     // std::cout << "lib_name: " << lib_name << std::endl;
-    //     // void* func_ptr = dlsym(handle, "cuGetProcAddress_v2");
-    //     void* func_ptr = dlsym(handle, "cuLaunchKernel");
-    //     if (func_ptr) {
-    //         local_hook::install_local_hook(func_ptr, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
-    //     } else {
-    //         continue;
-    //     }
-    //     // void* func_ptr = dlsym(handle, "cudaLaunchKernel");
-    //     // if (func_ptr) {
-    //     //     local_hook::install_local_hook(func_ptr, (void*)local_cuda_launch_kernel2, (void**)&Target_cudaLaunchKernel);
-    //     // } else {
-    //     //     continue;
-    //     // }
-    //     // void* func_ptr = dlsym(handle, "cuGetProcAddress_v2");
-    //     // std::cout << "cuGetProcAddress_v2: " << std::hex << func_ptr << std::endl;
-    //     // if (func_ptr) {
-    //     //     local_hook::install_local_hook(func_ptr, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
-    //     // } else {
-    //     //     continue;
-    //     // }
-    //     break;
-    // }
-#endif
+// #ifdef CUDA_DEV
+//     // REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
+//     REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
+// #endif
 
 }
 } // namespace gpu_profiler

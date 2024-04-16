@@ -14,7 +14,7 @@ using namespace log_module;
 #define WHITE   "\033[37m"
 
 int64_t get_log_level() {
-    const char *print_level = std::getenv("LOGLEVEL");
+    const char *print_level = std::getenv("LOG_LEVEL");
     if (print_level == nullptr) {
         return 0;
     }

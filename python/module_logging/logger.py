@@ -121,16 +121,12 @@ class ProfilingLogger(TorchDispatchMode):
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
-        #  insert pre-op delimiter
-        print("[START_SYMBOL]: {}".format(str(op)), flush=True)
         Hook.record_time("B", str(op), "aten op")
 
         # call op
         output = op(*args, **kwargs)
 
         Hook.record_time("E", str(op), "aten op")
-        #  insert after-op delimiter
-        print("[END_SYMBOL]: {}".format(str(op)), flush=True)
         return output
 
 
