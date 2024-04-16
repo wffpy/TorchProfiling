@@ -21,12 +21,12 @@ class CpuHookWrapper {
     static void *local_dlsym(void *handle, const char *symbol);;
     static void *local_dlopen(const char *filename, int flag);
 
-    int (*origin_launch_async_)(void *){nullptr};
-    int (*origin_launch_config_)(int, int, void *){nullptr};
-    int (*origin_launch_arg_set_)(const void *, size_t, size_t){nullptr};
-    int (*origin_xpu_wait_)(void *){nullptr};
-    void *(*origin_dlsym_)(void *, const char *);;
-    void *(*origin_dlopen_)(const char *, int);
+    int (*origin_launch_async_)(void *) = nullptr;
+    int (*origin_launch_config_)(int, int, void *) = nullptr;
+    int (*origin_launch_arg_set_)(const void *, size_t, size_t) = nullptr;
+    int (*origin_xpu_wait_)(void *) = nullptr;
+    void *(*origin_dlsym_)(void *, const char *) = nullptr;
+    void *(*origin_dlopen_)(const char *, int) = nullptr;
 };
 
 typedef utils::Singleton<CpuHookWrapper> SingletonCpuHookWrapper;
