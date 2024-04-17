@@ -1,18 +1,7 @@
 from .logger import *
-import configparser
+from . import trace
+from . import config
 
-# read config.ini
-config = configparser.ConfigParser()
-current_file_dir = os.path.dirname(os.path.abspath(__file__))
-if os.path.exists(current_file_dir + "/config.ini"):
-    print("config.ini found")
-else:
-    print("config.ini not found")
-config.read(current_file_dir + '/config.ini')
-
-# 获取cpp_extend配置
-cpp_extend = config['database']['cpp_extend']
-
-# just import Hook when cpp_extend is True
+cpp_extend = config.get_config("database", "cpp_extend")
 if cpp_extend == 'True':
     from . import Hook

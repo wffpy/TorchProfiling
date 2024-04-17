@@ -24,7 +24,7 @@ class Logger(object):
     @staticmethod
     def print_c(msg, color: Color):
         """print message with color"""
-        print(color + msg + color)
+        print(color + msg + Color.END)
 
     @staticmethod
     def debug(msg):
@@ -33,7 +33,7 @@ class Logger(object):
 
     @staticmethod
     def info(msg):
-        Logger.print_c("{}".format(msg), Color.GREEN)
+        Logger.print_c("INFO: {}".format(msg), Color.GREEN)
 
     @staticmethod
     def warn(msg):
