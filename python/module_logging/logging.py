@@ -1,6 +1,11 @@
 import os
 
-enable_debug = os.environ.get("PERF_DEBUG")
+log_level = os.environ.get("LOG_LEVEL")
+
+def get_log_level():
+    if log_level is None:
+        return 0
+    return int(log_level)
 
 
 class Color:
@@ -28,7 +33,7 @@ class Logger(object):
 
     @staticmethod
     def debug(msg):
-        if enable_debug:
+        if get_log_level() >= 2:
             Logger.print_c("{}".format(msg), Color.RED)
 
     @staticmethod
@@ -37,7 +42,8 @@ class Logger(object):
 
     @staticmethod
     def warn(msg):
-        Logger.print_c("WARN: {}".format(msg), Color.YELLOW)
+        if get_log_level() >= 1:
+            Logger.print_c("WARN: {}".format(msg), Color.YELLOW)
 
     @staticmethod
     def error(msg):
