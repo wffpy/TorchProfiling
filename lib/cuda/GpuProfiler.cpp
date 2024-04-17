@@ -12,6 +12,7 @@
 #include "hook/CFuncHook.h"
 #include "utils/Utils.h"
 #include "utils/BackTrace.h"
+#include "utils/Log/Log.h"
 
 using namespace gpu_profiler;
 
@@ -263,12 +264,12 @@ int local_cuGetProcAddress(const char* symbol, void** pfn, int  cudaVersion, cuu
 //                             unsigned int  blockDimZ, unsigned int  sharedMemBytes, void* hStream,
 //                             // void* kernelParams, void* extra ) {
 //                             void*** kernelParams, void*** extra ) {
-//     std::cout << "enter local_cuLaunchKernel!!!!!!!!!!!!!!!!!1" << std::endl;
-//     // CUresult ret = Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
-//     // cudaDeviceSynchronize();
-//     std::cout << "exit local_cuLaunchKernel" << std::endl;
-//     // return ret;
-//     return CUDA_SUCCESS;
+//     // std::cout << "enter local_cuLaunchKernel!!!!!!!!!!!!!!!!!1" << std::endl;
+//     CUresult ret = Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
+//     cudaDeviceSynchronize();
+//     // std::cout << "exit local_cuLaunchKernel" << std::endl;
+//     return ret;
+//     // return CUDA_SUCCESS;
 //     // return Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
 // }
 
@@ -294,8 +295,11 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 CUstream hStream,
                                 void **kernelParams,
                                 void **extra) {
+    cudaDeviceSynchronize();
+    init_trace();
+    std::cout << "call cuLaunch" << std::endl;
 
-    return Target_cuLaunchKernel_1(f, 
+    CUresult ret = Target_cuLaunchKernel(f, 
                                 gridDimX,
                                 gridDimY,
                                 gridDimZ,
@@ -306,6 +310,9 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 hStream,
                                 kernelParams,
                                 extra);
+    cudaDeviceSynchronize();
+    fini_trace();
+    return ret;
 }
 
 // REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
