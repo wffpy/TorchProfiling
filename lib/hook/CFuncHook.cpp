@@ -34,11 +34,9 @@ int callback(struct dl_phdr_info *info, size_t size, void *data) {
 
     HookRegistrar *reg = HookRegistrar::instance();
     std::string name_str = lib_name;
-    // std::cout << ">>>>>>>>>>>lib_name: " << lib_name << std::endl;
     if (reg->get_hook_num() > 0) {
         reg->try_get_origin_func(lib_name);
     }
-    // std::cout << ">>>>>>>>>>>lib_name: " << lib_name << std::endl;
 
     // 遍历当前动态库中所有段的信息
     for (size_t i = 0; i < info->dlpi_phnum; i++) {
@@ -92,7 +90,7 @@ PltInfoVec collect_plt() {
 
 void install_hook() {
     static HookRegistrar *reg = HookRegistrar::instance();
-    std::cout << "hook num: " << reg->get_hook_num() << std::endl;
+    LOG() << "hook num: " << reg->get_hook_num();
     auto plt_info_vec = collect_plt();
     for (auto &plt_info : plt_info_vec) {
         int relaEntryCount = plt_info.pltrelsz / sizeof(ElfW(Rela));
@@ -101,8 +99,6 @@ void install_hook() {
             int r_sym = ELF64_R_SYM(entry->r_info);
             int st_name = plt_info.dynsym[r_sym].st_name;
             char *name = &plt_info.dynstr[st_name];
-            // std::cout << "found lib name: " << plt_info.lib_name << std::endl;
-            // std::cout << "sym name: " << name << std::endl;
             std::string lib_name = plt_info.lib_name;
             auto iter = lib_name.find("Hook");
             if (iter != std::string::npos) {
@@ -110,9 +106,8 @@ void install_hook() {
             }
             for (auto hook_info : reg->get_hooks()) {
                 if (std::string(name) == hook_info->sym_name) {
-                    // std::cout << "found lib name: " << plt_info.lib_name << std::endl;
-                    // std::cout << "found func: " << hook_info->sym_name
-                            //   << std::endl;
+                    DLOG() << "found lib name: " << plt_info.lib_name;
+                    DLOG() << "found func: " << hook_info->sym_name;
                     uintptr_t hook_point =
                         (uintptr_t)(plt_info.base_addr + entry->r_offset);
                     *(void **)hook_point = (void *)hook_info->new_func;

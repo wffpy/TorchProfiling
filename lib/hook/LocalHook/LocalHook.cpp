@@ -123,7 +123,7 @@ struct X64Instructions {
 
 X64Instructions steal_bytes(void *function, int64_t bytes) {
     // Disassemble stolen bytes
-    std::cout << "Stealing bytes from: " << function << std::endl;
+    LOG() << "Stealing bytes from: " << function;
     csh handle;
     auto s = cs_open(CS_ARCH_X86, CS_MODE_64, &handle);
     if (s != 0) {

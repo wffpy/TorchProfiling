@@ -23,7 +23,7 @@ bash scripts/build.sh
 ### 1. Get Profiling Data
 #### step 1: Profiling
 
-##### Usage 1: not display torch.Module
+##### Usage 1: profiling cpu not display torch.Module
 ```
 import module_logging as ml
 
@@ -32,8 +32,27 @@ with ml.logger.combined_context():
 
 ```
 
-##### Usage 2: display the torch.Module
+##### Usage 2: profiling cpu display the torch.Module
 ```
+import module_logging as ml
+
+m = model
+with ml.logger.combined_context(m):
+    m()
+
+```
+##### Usage 3: profiling gpu kernel
+```
+#for example llama2_7b
+#step1: in pretrain_llama.py
+import module_logging as ml
+
+rank = os.getenv("RANK", "0")
+# avoid repeating hook in different process
+if "0" == rank:
+    ml.Hook.install_hook()
+
+#step2: in training.py
 import module_logging as ml
 
 m = model
