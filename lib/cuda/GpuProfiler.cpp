@@ -12,6 +12,7 @@
 #include "hook/CFuncHook.h"
 #include "utils/Utils.h"
 #include "utils/BackTrace.h"
+#include "utils/Log/Log.h"
 
 using namespace gpu_profiler;
 
@@ -296,6 +297,7 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 void **extra) {
     cudaDeviceSynchronize();
     init_trace();
+    std::cout << "call cuLaunch" << std::endl;
 
     CUresult ret = Target_cuLaunchKernel(f, 
                                 gridDimX,
@@ -309,6 +311,7 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 kernelParams,
                                 extra);
     cudaDeviceSynchronize();
+    fini_trace();
     return ret;
 }
 

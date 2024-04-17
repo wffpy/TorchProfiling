@@ -36,7 +36,6 @@ int callback(struct dl_phdr_info *info, size_t size, void *data) {
     std::string name_str = lib_name;
     // std::cout << ">>>>>>>>>>>lib_name: " << lib_name << std::endl;
     if (reg->get_hook_num() > 0) {
-        std::cout << "#############" << std::endl;
         reg->try_get_origin_func(lib_name);
     }
     // std::cout << ">>>>>>>>>>>lib_name: " << lib_name << std::endl;
