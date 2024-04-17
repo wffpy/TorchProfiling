@@ -302,6 +302,7 @@ class Analyzer:
                 self.current_module.add_elem(self.current_op)
             else:
                 self.op_or_module.append(self.current_op)
+            self.current_op = None
             return True
         return False
 
@@ -311,7 +312,8 @@ class Analyzer:
             or self.collection_state == STATE.MODULE
         ) and line.startswith("[XPURT_PROF]"):
             Logger.debug("Op Time")
-            self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
+            if self.current_op:
+                self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
             return True
         return False
 
