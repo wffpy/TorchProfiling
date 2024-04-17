@@ -252,27 +252,6 @@ int local_cuGetProcAddress(const char* symbol, void** pfn, int  cudaVersion, cuu
     return Target_cuGetProcAddress(symbol, pfn, cudaVersion, flags, symbolStatus);
 }
 
-// // CUresult (*Target_cuLaunchKernel)(CUfunction f, unsigned int  gridDimX, unsigned int  gridDimY,
-// CUresult (*Target_cuLaunchKernel)(void* f, unsigned int  gridDimX, unsigned int  gridDimY,
-//                                   unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY,
-//                                   unsigned int  blockDimZ, unsigned int  sharedMemBytes, void* hStream,
-//                                 //   void* kernelParams, void* extra) = nullptr;
-//                                   void*** kernelParams, void*** extra) = nullptr;
-// // CUresult local_cuLaunchKernel(CUfunction f, unsigned int  gridDimX, unsigned int  gridDimY, 
-// CUresult local_cuLaunchKernel(void* f, unsigned int  gridDimX, unsigned int  gridDimY, 
-//                             unsigned int  gridDimZ, unsigned int  blockDimX, unsigned int  blockDimY,
-//                             unsigned int  blockDimZ, unsigned int  sharedMemBytes, void* hStream,
-//                             // void* kernelParams, void* extra ) {
-//                             void*** kernelParams, void*** extra ) {
-//     // std::cout << "enter local_cuLaunchKernel!!!!!!!!!!!!!!!!!1" << std::endl;
-//     CUresult ret = Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
-//     cudaDeviceSynchronize();
-//     // std::cout << "exit local_cuLaunchKernel" << std::endl;
-//     return ret;
-//     // return CUDA_SUCCESS;
-//     // return Target_cuLaunchKernel(f, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, sharedMemBytes, hStream, kernelParams, extra);
-// }
-
 CUresult (*Target_cuLaunchKernel)(CUfunction f,
                                 unsigned int gridDimX,
                                 unsigned int gridDimY,
@@ -297,8 +276,6 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 void **extra) {
     cudaDeviceSynchronize();
     init_trace();
-    std::cout << "call cuLaunch" << std::endl;
-
     CUresult ret = Target_cuLaunchKernel(f, 
                                 gridDimX,
                                 gridDimY,

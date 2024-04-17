@@ -1,5 +1,6 @@
 #include "utils/Timer/Timer.h"
 #include "utils/Utils.h"
+#include "utils/Log/Log.h"
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -149,9 +150,9 @@ int64_t Timer::get_duration() {
 }
 
 Timer::~Timer() {
-    std::cout << "Timer::~Timer()" << std::endl;
+    LOG() << "Timer::~Timer()";
     if (times.empty()) {
-        std::cout << "No time record." << std::endl;
+        LOG() << "No time recorded.";
         return;
     }
     std::ofstream file("/tmp/example.json");
