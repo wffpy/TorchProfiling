@@ -74,8 +74,8 @@ static void print_activity(CUpti_Activity *record) {
     case CUPTI_ACTIVITY_KIND_KERNEL:
     case CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL: {
         CUpti_ActivityKernel4 *kernel = (CUpti_ActivityKernel4 *)record;
-        LOG() << "[XPURT_PROF] " << kernel->name << ": "
-                  << kernel->end - kernel->start << " ns";
+        std::cout << "[XPURT_PROF] " << kernel->name << ": "
+                  << kernel->end - kernel->start << " ns" << std::endl;
         break;
     }
     default:
