@@ -9,6 +9,15 @@
 using namespace cpu_hook;
 using namespace std::chrono;
 
+int64_t get_rank() {
+    const char *rank_str= std::getenv("RANK");
+    if (rank_str == nullptr) {
+        return 0;
+    }
+    int64_t rank = std::stoi(rank_str);
+    return rank;
+}
+
 class CpuHookWrapper {
   public:
     CpuHookWrapper() {}

@@ -9,17 +9,12 @@
 
 namespace py = pybind11;
 
-void install_hook() {
-    cfunc_hook::install_hook();
-    local_hook::install_local_hooks();
-}
-
 void init_hook(pybind11::module& m) {
     m.def("install_hook", []() {
         cpu_hook::register_cpu_hook();
         gpu_profiler::register_gpu_hook();
-        lock::do_func_in_one_process(install_hook);
-
+        cfunc_hook::install_hook();
+        local_hook::install_local_hooks();
     });
 
     m.def("enable_profiling", [](){
