@@ -3,5 +3,5 @@ from . import trace
 from . import config
 
 cpp_extend = config.get_config("database", "cpp_extend")
-if cpp_extend == 'True':
+if cpp_extend == "True":
     from . import Hook

@@ -2,6 +2,7 @@ import os
 
 log_level = os.environ.get("LOG_LEVEL")
 
+
 def get_log_level():
     if log_level is None:
         return 0

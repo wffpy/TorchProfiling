@@ -329,7 +329,7 @@ class Analyzer:
             # if self.collection_state == STATE.BEGIN:
             #     continue
             # elif self.collection_state == STATE.STOP:
-                # break
+            # break
             if self.identify_module_begin(line):
                 continue
             elif self.identify_module_end(line):

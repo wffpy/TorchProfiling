@@ -28,7 +28,6 @@ class MetaPathLoader:
         # 导入 module
         module = importlib.import_module(fullname)
         # 不要在hook中向stdout打印任何语句
-        #print(" --------------- ", fullname, " ================== ", module)
         module_hook(fullname, module)
 
         sys.meta_path.insert(0, finder)
@@ -39,12 +38,38 @@ sys.meta_path.insert(0, MetaPathFinder())
 
 
 def module_hook(fullname, module):
-    #print(f"fullname {fullname}")
-    #print(f"module {module}")
+    # print(f"fullname {fullname}")
+    # print(f"module {module}")
     if fullname == "torch":
-        # TODO 以下backward是等效的, 可能极少数特殊情况下会有重复计数的情况
-        module.Tensor.backward = func_wrapper(module.Tensor.backward)
         module.autograd.backward = func_wrapper(module.autograd.backward)
+
+        module.distributed.broadcast = func_torch_distributed_wrapper(
+            module.distributed.broadcast
+        )
+        module.distributed.all_reduce = func_torch_distributed_wrapper(
+            module.distributed.all_reduce
+        )
+        module.distributed.reduce = func_torch_distributed_wrapper(
+            module.distributed.reduce
+        )
+        module.distributed.all_gather = func_torch_distributed_wrapper(
+            module.distributed.all_gather
+        )
+        module.distributed.gather = func_torch_distributed_wrapper(
+            module.distributed.gather
+        )
+        module.distributed.scatter = func_torch_distributed_wrapper(
+            module.distributed.scatter
+        )
+        module.distributed.reduce_scatter = func_torch_distributed_wrapper(
+            module.distributed.reduce_scatter
+        )
+        module.distributed.send = func_torch_distributed_wrapper(
+            module.distributed.send
+        )
+        module.distributed.recv = func_torch_distributed_wrapper(
+            module.distributed.recv
+        )
 
 
 def func_wrapper(func):
@@ -59,5 +84,31 @@ def func_wrapper(func):
         times += 1
         print("spent {}s, count==>{}".format(end - start, times))
         return result
+
+    return wrapper
+
+
+def func_torch_distributed_wrapper(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if callable(func):
+            result = func(*args, **kwargs)
+            if isinstance(args, tuple):
+                args_info = ", ".join(
+                    [
+                        f"args_{idx} shape {arg.shape}, dtype {arg.dtype} "
+                        for idx, arg in enumerate(args)
+                    ]
+                )
+                print(
+                    f"[PPROBE] torch.distributed.{func.__qualname__} {args_info}, kwargs {kwargs}"
+                )
+            else:
+                print(
+                    f"[PPROBE] torch.distributed.{func.__qualname__} args {args}, kwargs {kwargs} "
+                )
+            return result
+        else:
+            print(f"func:{func} is not callable")
 
     return wrapper

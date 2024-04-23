@@ -107,7 +107,6 @@ class PerformanceLogger(TorchDispatchMode):
         return output
 
 
-
 class TorchFunctionLog(TorchFunctionMode):
     def __torch_function__(self, func, types, args, kwargs=None):
         # 打印 torch module接口

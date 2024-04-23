@@ -54,13 +54,23 @@ def parse_args():
 
     arg_parser.add_argument("--rhs_path", type=pathlib.Path, help="path to log file")
 
+    arg_parser.add_argument("--cut_log", action="store_true", help="split log")
+
     arg_parser.add_argument(
-        "--cut_log", action="store_true", help="split log"
+        "--begin",
+        action="store",
+        type=str,
+        default="iteration        2",
+        help="path to log file",
     )
 
-    arg_parser.add_argument("--begin", action='store', type=str, default="iteration        2", help="path to log file")
-
-    arg_parser.add_argument("--end", action='store', type=str, default="iteration        3", help="path to log file")
+    arg_parser.add_argument(
+        "--end",
+        action="store",
+        type=str,
+        default="iteration        3",
+        help="path to log file",
+    )
 
     return arg_parser.parse_args()
 

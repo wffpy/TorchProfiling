@@ -1,4 +1,3 @@
-
 def extract_section(filename, start_string, end_string):
     # 用于标记是否已经开始提取片段
     in_section = False
@@ -6,7 +5,7 @@ def extract_section(filename, start_string, end_string):
     section_lines = []
 
     # 打开文件并逐行读取
-    with open(filename, 'r') as file:
+    with open(filename, "r") as file:
         for line in file:
             # 如果已经开始提取片段，检查是否遇到结束字符串
             if in_section:
@@ -17,6 +16,6 @@ def extract_section(filename, start_string, end_string):
             elif start_string in line:
                 in_section = True
                 print(line)
-    
+
     # 返回提取的片段内容
-    return ''.join(section_lines)
+    return "".join(section_lines)

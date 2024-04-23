@@ -6,6 +6,7 @@ cpp_extend = config.get_config("database", "cpp_extend")
 if cpp_extend == "True":
     from . import Hook
 
+
 class ProfilingLogger(TorchDispatchMode):
     """
     insert delimiters before and and after op execution
@@ -25,7 +26,6 @@ class ProfilingLogger(TorchDispatchMode):
                 m_tuple = self.get_named_modules(model)
                 for name, m, l in m_tuple:
                     self._register_hook(name, m, l)
-                
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
@@ -84,7 +84,9 @@ class ProfilingLogger(TorchDispatchMode):
         module.register_forward_pre_hook(self.pre_forward_hook_wrapper(name, level))
         module.register_forward_hook(self.post_forward_hook_wrapper(name, level))
 
-        module.register_full_backward_pre_hook(self.pre_backward_hook_wrapper(name, level))
+        module.register_full_backward_pre_hook(
+            self.pre_backward_hook_wrapper(name, level)
+        )
         module.register_full_backward_hook(self.post_backward_hook_wrapper(name, level))
 
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):

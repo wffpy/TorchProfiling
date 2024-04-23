@@ -9,7 +9,7 @@ import configparser
 
 # 读取配置文件
 config = configparser.ConfigParser()
-config.read('python/module_logging/config.ini')
+config.read("python/module_logging/config.ini")
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -67,6 +67,7 @@ class CMakeBuild(build_ext):
         print(f"cmake build_dir {build_dir}")
         subprocess.check_call(["cmake", "--build", "."], cwd=build_dir)
 
+
 def regular_setup():
     setup(
         name="module_logging",
@@ -80,9 +81,12 @@ def regular_setup():
         install_requires=[
             "torch",
         ],
-        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
+        entry_points={
+            "console_scripts": ["module_logging = module_logging.__main__:main"]
+        },
         zip_safe=False,
     )
+
 
 def cpp_extend_setup():
     setup(
@@ -97,7 +101,9 @@ def cpp_extend_setup():
         install_requires=[
             "torch",
         ],
-        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
+        entry_points={
+            "console_scripts": ["module_logging = module_logging.__main__:main"]
+        },
         ext_modules=[
             CMakeExtension("module_logging.Hook"),
         ],
@@ -105,15 +111,16 @@ def cpp_extend_setup():
         zip_safe=False,
     )
 
+
 if __name__ == "__main__":
-    compile_option = os.environ.get('COMPIEL_OPTION')
+    compile_option = os.environ.get("COMPIEL_OPTION")
     if compile_option is not None:
-        config['database']['cpp_extend'] = "False"
-        with open('python/module_logging/config.ini', 'w') as configfile:
+        config["database"]["cpp_extend"] = "False"
+        with open("python/module_logging/config.ini", "w") as configfile:
             config.write(configfile)
-        regular_setup() 
+        regular_setup()
     else:
-        config['database']['cpp_extend'] = "True"
-        with open('python/module_logging/config.ini', 'w') as configfile:
+        config["database"]["cpp_extend"] = "True"
+        with open("python/module_logging/config.ini", "w") as configfile:
             config.write(configfile)
         cpp_extend_setup()
