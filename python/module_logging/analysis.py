@@ -225,8 +225,7 @@ class Analyzer:
                 self.collection_state == STATE.FORMAL
                 or self.collection_state == STATE.MODULE
             )
-            and line.startswith("[BEGIN FORWARD]")
-            or line.startswith("[BEGIN BACKWARD]")
+            and ("[BEGIN FORWARD]" in line or "[BEGIN BACKWARD]" in line)
         ):
             # if self.current_module is not None:
             #     self.stack.push(self.current_module)
@@ -249,7 +248,7 @@ class Analyzer:
         2. if there is no module in this iteration, return None
         """
         if self.collection_state == STATE.MODULE and (
-            line.startswith("[END FORWARD]") or line.startswith("[END BACKWARD]")
+            "[END FORWARD]" in line or "[END BACKWARD]" in line
         ):
             Logger.debug("Module End: {}".format(self.current_m_name))
             temp_module = self.current_module
@@ -284,7 +283,7 @@ class Analyzer:
         if (
             self.collection_state == STATE.FORMAL
             or self.collection_state == STATE.MODULE
-        ) and line.startswith("[START_SYMBOL]"):
+        ) and "[START_SYMBOL]" in line:
             Logger.debug("Op Start")
             self.current_op_name = line.rstrip("\n").split(":")[-1].replace("_", " ")
             self.current_op = LocalOp(self.current_op_name, self.current_m_name)
@@ -295,7 +294,7 @@ class Analyzer:
         if (
             self.collection_state == STATE.FORMAL
             or self.collection_state == STATE.MODULE
-        ) and line.startswith("[END_SYMBOL]"):
+        ) and "[END_SYMBOL]" in line:
             Logger.debug("Op End")
             self.total += self.current_op.get_time()
             if self.current_module is not None:
@@ -310,7 +309,7 @@ class Analyzer:
         if (
             self.collection_state == STATE.FORMAL
             or self.collection_state == STATE.MODULE
-        ) and line.startswith("[XPURT_PROF]"):
+        ) and "[XPURT_PROF]" in line:
             Logger.debug("Op Time")
             if self.current_op:
                 self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
@@ -324,7 +323,10 @@ class Analyzer:
         lines = []
         with open(self.log_path, "r") as f:
             lines = f.readlines()
+        line_index =0
         for line in lines:
+            Logger.debug("Line {}: {}".format(line_index, line))
+            line_index += 1
             # self.identify_step_beign_or_end(line)
             # if self.collection_state == STATE.BEGIN:
             #     continue

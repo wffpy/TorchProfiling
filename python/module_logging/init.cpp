@@ -4,6 +4,7 @@
 #include "hook/CFuncHook.h"
 #include "hook/LocalHook/LocalHook.h"
 #include "utils/Timer/Timer.h"
+#include "utils/Lock/FileLock.h"
 #include <iostream>
 
 namespace py = pybind11;

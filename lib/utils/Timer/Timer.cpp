@@ -1,12 +1,17 @@
 #include "utils/Timer/Timer.h"
 #include "utils/Utils.h"
 #include "utils/Log/Log.h"
+#include "utils/Lock/FileLock.h"
 #include <chrono>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <vector>
 #include <mutex>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/file.h>
+#include <string.h>
 
 using namespace std::chrono;
 
@@ -21,6 +26,67 @@ namespace timer {
 // enum class COLORS {
 //     GREEN, GREY, YELLOW, 
 // };
+
+class AtomicFile {
+public:
+    AtomicFile(std::string file_name);
+    ~AtomicFile();
+    // int64_t write_with_lock(std::string content);
+    int64_t write_with_lock(const char* content, int64_t offset = 0);
+    int64_t write_non_lock(const char* content);
+    bool is_emtpy_brackets();
+private:
+    int fd;
+};
+
+AtomicFile::AtomicFile(std::string file_path) {
+    fd = open(file_path.c_str(), O_RDWR | O_CREAT, 0666);
+    if (fd < 0) {
+        ELOG() << "open file failed" << file_path;
+    }
+}
+
+AtomicFile::~AtomicFile() {
+    close(fd);
+}
+
+int64_t AtomicFile::write_with_lock(const char* content, int64_t offset) {
+    // LOG() << "write str: " << content;
+    flock(fd, LOCK_EX);
+    lseek(fd, offset, SEEK_END);
+    int64_t len = write(fd, content, strlen(content));
+    flock(fd, LOCK_UN);
+    return len;
+}
+
+int64_t AtomicFile::write_non_lock(const char* content) {
+    lseek(fd, 0L, SEEK_END);
+    int64_t len = write(fd, content, strlen(content));
+    return len;
+}
+
+bool AtomicFile::is_emtpy_brackets() {
+    int64_t offset = lseek(fd, -2, SEEK_END);
+    if (offset == -1) {
+        ELOG() << "lseek failed, the file may be empty";
+    }
+    char buffer[2];
+    read(fd, buffer, 2);
+    std::cout << buffer[0] << buffer[1];
+    if (buffer[0] == '}' && buffer[1] == ']') {
+        return false;
+    }
+    return true;
+}
+
+int64_t get_rank() {
+    const char *rank_str= std::getenv("RANK");
+    if (rank_str == nullptr) {
+        return 0;
+    }
+    int64_t rank = std::stoi(rank_str);
+    return rank;
+}
 
 class Json {
   public:
@@ -69,6 +135,7 @@ class Timer {
     void set_flag();
     void record_duration();
     int64_t get_duration();
+    void write_brackets();
     std::mutex mtx;
     static void enable_timer();
     static bool enable;
@@ -85,19 +152,23 @@ class Timer {
     std::vector<std::string> tids;
     std::vector<std::string> cnames;
     bool flag = false;
+    int64_t rank;
+    AtomicFile file;
 };
 
 bool Timer::enable = false;
 
-Timer::Timer() : start(high_resolution_clock::now()) {
+Timer::Timer() : start(high_resolution_clock::now()), rank(get_rank()), file(AtomicFile("/tmp/profiling.json")) {
     pre_time_point = start;
     sec_time_point = pre_time_point;
+    write_brackets();
 }
 
-Timer::Timer(int64_t size) : start(high_resolution_clock::now()) {
+Timer::Timer(int64_t size) : start(high_resolution_clock::now()), rank(get_rank()), file(AtomicFile("/tmp/profiling.json")) {
     pre_time_point = start;
     sec_time_point = pre_time_point;
     times.reserve(size);
+    write_brackets();
 }
 
 void Timer::enable_timer() { enable = true; }
@@ -149,36 +220,45 @@ int64_t Timer::get_duration() {
     }
 }
 
+void Timer::write_brackets() {
+    if (Timer::enable) {
+        lock::do_func_in_one_process([&]() {
+            std::string brackets = "[\n]";
+            auto len = file.write_non_lock(brackets.c_str());
+        });
+    }
+}
+
 Timer::~Timer() {
-    LOG() << "Timer::~Timer()";
+    LOG() << "Timer::~Timer(), rank: " << rank;
     if (times.empty()) {
         LOG() << "No time recorded.";
         return;
     }
-    std::ofstream file("/tmp/example.json");
-    if (!file.is_open()) {
-        std::cerr << "Failed to  open file." << std::endl;
-    }
-
     int64_t time_num = times.size();
-    file << "[\n";
     for (int64_t index = 0; index < time_num; index++) {
         Json json;
+        std::string j_str = "";
         if (index != 0) {
-            file << ",\n";
+            j_str = ",\n";
+        } else if (!file.is_emtpy_brackets()) {
+            j_str = ",\n";
         }
+
         json.add("name", names[index]);
         json.add("ph", phs[index]);
         json.add("tid", tids[index]);
-        json.add("pid", "main");
+        json.add("pid", std::to_string(rank));
         int64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                times[index] - start)
                                .count();
         json.add("ts", std::to_string((double)duration / 1000));
-        file << json.to_string();
+        j_str += json.to_string();
+        j_str += "]";
+        file.write_with_lock(j_str.c_str(), -1);
     }
-    file << "]\n";
-    file.close();
+
+    // file.write_with_lock("]\n");
 }
 
 typedef utils::Singleton<Timer> TimerSingletone;
@@ -198,6 +278,7 @@ int64_t get_time() {
 
 void record_time(std::string ph , std::string name , std::string tid, std::string cname) {
     if (Timer::enable) {
+        DLOG() <<  "recored_time ph:" << ph << ", name: " << name << ", tid: " << tid << ", cname: " << cname;
         TimerSingletone::instance().get_elem()->record_time(ph, name, tid, cname); 
     }
 }
