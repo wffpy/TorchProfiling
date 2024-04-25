@@ -106,6 +106,10 @@ void install_hook() {
             }
             for (auto hook_info : reg->get_hooks()) {
                 if (std::string(name) == hook_info->sym_name) {
+                    // TODO: 暂时只hook了 xpu 库中的函数
+                    if (hook_info->sym_name == "fprintf" && lib_name.find("xpu") == std::string::npos) {
+                        continue;
+                    }
                     DLOG() << "found lib name: " << plt_info.lib_name;
                     DLOG() << "found func: " << hook_info->sym_name;
                     uintptr_t hook_point =
@@ -134,6 +138,7 @@ HookRegistrar *HookRegistrar::instance() {
 void HookRegistrar::try_get_origin_func(std::string lib_name) {
     for (auto hook_ptr : hooks_) {
         if (*(hook_ptr->origin_func) == nullptr) {
+            LOG() << "hook func name: " << hook_ptr->sym_name;
             void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
             void *func_ptr = dlsym(handle, hook_ptr->sym_name.c_str());
             if (func_ptr != nullptr) {
