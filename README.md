@@ -1,4 +1,4 @@
-# Performance Logger
+# TorchProfiling
 
 ## Build And Install
 ### For Cpu
@@ -23,40 +23,21 @@ bash scripts/build.sh
 ### 1. Get Profiling Data
 #### step 1: Profiling
 
-##### Usage 1: profiling cpu not display torch.Module
+##### Mode 1: just profiling the aten op 
 ```
 import module_logging as ml
 
-with ml.logger.combined_context():
+with ml.combined_context():
     model()
 
 ```
 
-##### Usage 2: profiling cpu display the torch.Module
+##### Mode 2: profiling both the nn.Module and aten op
 ```
 import module_logging as ml
 
 m = model
-with ml.logger.combined_context(m):
-    m()
-
-```
-##### Usage 3: profiling gpu kernel
-```
-#for example llama2_7b
-#step1: in pretrain_llama.py
-import module_logging as ml
-
-rank = os.getenv("RANK", "0")
-# avoid repeating hook in different process
-if "0" == rank:
-    ml.Hook.install_hook()
-
-#step2: in training.py
-import module_logging as ml
-
-m = model
-with ml.logger.combined_context(m):
+with ml.combined_context(m):
     m()
 
 ```
@@ -78,10 +59,11 @@ python -m module_logging --path 7.log --all
 # write table to csv: /tmp/total.csv
 python -m module_logging --path 7.log --csv
 
-#compare mode
+#compare mode, must profiling with Mode 2
 python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log
 
 # compare mode and write to csv: /tmp/compare.csv
+# must profiling with Mode 2
 python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log --csv
 
 ```

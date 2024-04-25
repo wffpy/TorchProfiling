@@ -4,6 +4,7 @@ import torch.distributed as dist
 from torch.utils._python_dispatch import TorchDispatchMode
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
+from . import config
 
 MODULE_COUNTER = 0
 print_rank = int(os.environ.get("PRINT_RANK", 0))
@@ -33,6 +34,12 @@ class PerformanceLogger(TorchDispatchMode):
                 m_tuple = self.get_named_modules(model)
                 for name, m in m_tuple:
                     self._register_hook(name, m)
+
+        # for gpu profilig with cpp extension, for xpu profiling is not necessary
+        if config.cpp_extend():
+            from . import Hook
+            Hook.install_hook()
+
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
@@ -98,9 +105,9 @@ class PerformanceLogger(TorchDispatchMode):
         print("[START_SYMBOL]: {}".format(str(op)), flush=True)
 
         # call op
-        torch.cuda.synchronize()
+        # torch.cuda.synchronize()
         output = op(*args, **kwargs)
-        torch.cuda.synchronize()
+        # torch.cuda.synchronize()
 
         #  insert after-op delimiter
         print("[END_SYMBOL]: {}".format(str(op)), flush=True)
@@ -130,16 +137,5 @@ def combined_context(model=None):
     with combined_context(model):
         train()
     """
-    # 判断是否处于分布式环境中
-    if dist.is_available() and dist.is_initialized():
-        rank = dist.get_rank()
-        if rank == print_rank:
-            with TorchFunctionLogAndPerformanceLogger(model):
-                yield
-        else:
-            # 如果 rank 不是 0，则不执行任何操作
-            yield
-    else:
-        # 默认单机
-        with TorchFunctionLogAndPerformanceLogger(model):
-            yield
+    with TorchFunctionLogAndPerformanceLogger(model):
+        yield
