@@ -32,6 +32,11 @@ void init_hook(pybind11::module& m) {
     m.def("record_time", [](char* ph, char* name, char* tid) {
         timer::record_time(ph, name, tid);
     });
+
+    m.def("set_record_path", [](char* path) {
+        std::string path_str(path);
+        timer::set_record_path(path_str);
+    });
 }
 
 PYBIND11_MODULE(Hook, m) {

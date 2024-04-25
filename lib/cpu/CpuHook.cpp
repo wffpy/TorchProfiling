@@ -6,6 +6,8 @@
 #include "hook/LocalHook/LocalHook.h"
 #include <chrono>
 #include "utils/Timer/Timer.h"
+#include <stdarg.h>
+
 using namespace cpu_hook;
 using namespace std::chrono;
 
@@ -18,6 +20,7 @@ int64_t get_rank() {
     return rank;
 }
 
+static int (*origin_xpu_wait_)(void *) = nullptr;
 class CpuHookWrapper {
   public:
     CpuHookWrapper() {}
@@ -27,15 +30,19 @@ class CpuHookWrapper {
     static int local_launch_arg_set(const void *arg, size_t size,
                                     size_t offset);
     static int local_xpu_wait(void *stream);
-    static void *local_dlsym(void *handle, const char *symbol);;
+    static void *local_dlsym(void *handle, const char *symbol);
     static void *local_dlopen(const char *filename, int flag);
+    static int local_print(const char *format, ...);
+    static int local_fprintf(void* stream, const char *format, ...);
 
     int (*origin_launch_async_)(void *) = nullptr;
     int (*origin_launch_config_)(int, int, void *) = nullptr;
     int (*origin_launch_arg_set_)(const void *, size_t, size_t) = nullptr;
-    int (*origin_xpu_wait_)(void *) = nullptr;
+    // int (*origin_xpu_wait_)(void *) = nullptr;
     void *(*origin_dlsym_)(void *, const char *) = nullptr;
     void *(*origin_dlopen_)(const char *, int) = nullptr;
+    int (*origin_print_)(const char*, ...)  = nullptr;
+    int (*origin_fprintf_)(void* , const char*, ...)  = nullptr;
 };
 
 typedef utils::Singleton<CpuHookWrapper> SingletonCpuHookWrapper;
@@ -78,9 +85,9 @@ int CpuHookWrapper::local_launch_arg_set(const void *arg, size_t size,
 int CpuHookWrapper::local_xpu_wait(void *stream) {
     trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
-    if (wrapper_instance->origin_xpu_wait_ != nullptr) {
+    if (origin_xpu_wait_ != nullptr) {
         timer::record_time(/*ph=*/"B", /*name=*/"local_xpu_wait", /*runtime api=*/"runtime api", /*cname=*/"good");
-        int status = wrapper_instance->origin_xpu_wait_(stream);
+        int status = origin_xpu_wait_(stream);
         timer::record_time(/*ph=*/"E", /*name=*/"local_xpu_wait", /*runtime api=*/"runtime api", /*cname=*/"good");
         return status;
     } else {
@@ -119,6 +126,44 @@ int local_launch_async(void *func) {
     return Target_launch_async(func);
 }
 
+int CpuHookWrapper::local_print(const char* format, ...) {
+    auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    if (wrapper_instance->origin_print_ != nullptr) {
+        va_list args;
+        va_start(args, format);
+        int ret = wrapper_instance->origin_print_(format, args);
+        va_end(args);
+        return ret;
+    } else {
+        ELOG() << "origin local print is nullptr";
+    }
+    return 0;
+}
+
+int CpuHookWrapper::local_fprintf(void* stream, const char* format, ...) {
+    auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    std::string format_str(format);
+    if (format_str.find("[XPURT_PROF]") != std::string::npos) {
+        va_list args;
+        va_start(args, format);
+        const char* func_name = va_arg(args, const char*);
+        int cycles = va_arg(args, int);
+        int time = va_arg(args, int);
+        timer::record_time_pair(time, func_name, "kernel", "good");
+
+    } else {
+        if (wrapper_instance->origin_fprintf_ != nullptr) {
+            va_list args;
+            va_start(args, format);
+            wrapper_instance->origin_fprintf_(stream, format, args);
+            va_end(args);
+        } else {
+            ELOG() << "origin local fprintf is nullptr";
+        }
+    }
+    return 0;
+}
+
 // REGISTER_LOCAL_HOOK(xpu_launch_async, (void *)local_launch_async, (void**)&Target_launch_async);
 // REGISTER_LOCAL_HOOK(xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
 //              (void **)&SingletonCpuHookWrapper::instance()
@@ -140,8 +185,7 @@ REGISTERHOOK(xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
 //                  ->origin_launch_arg_set_);
 
 REGISTERHOOK(
-    xpu_wait, (void *)CpuHookWrapper::local_xpu_wait,
-    (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_xpu_wait_);
+    xpu_wait, (void *)CpuHookWrapper::local_xpu_wait, (void **)&origin_xpu_wait_);
 
 // REGISTERHOOK(
 //     dlsym, (void *)CpuHookWrapper::local_dlsym,
@@ -150,6 +194,14 @@ REGISTERHOOK(
 // REGISTERHOOK(
 //     dlopen, (void *)CpuHookWrapper::local_dlopen,
 //     (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_dlopen_);
+
+// REGISTERHOOK(printf, (void *)CpuHookWrapper::local_print,
+//     (void**)&SingletonCpuHookWrapper::instance().get_elem()->origin_print_);
+
+// REGISTER_LOCAL_HOOK(printf,  (void *)CpuHookWrapper::local_print, (void**)&SingletonCpuHookWrapper::instance().get_elem()->origin_print_);
+
+REGISTERHOOK(fprintf, (void *)CpuHookWrapper::local_fprintf,
+    (void**)&SingletonCpuHookWrapper::instance().get_elem()->origin_fprintf_);
 
 namespace cpu_hook {
 void register_cpu_hook() {

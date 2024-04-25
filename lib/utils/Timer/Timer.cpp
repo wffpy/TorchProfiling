@@ -29,29 +29,51 @@ namespace timer {
 
 class AtomicFile {
 public:
-    AtomicFile(std::string file_name);
+    AtomicFile() : fd(-1) {}
+    AtomicFile(const std::string& file_name);
+    AtomicFile(const AtomicFile& file);
     ~AtomicFile();
+    AtomicFile& operator=(const AtomicFile&);
     // int64_t write_with_lock(std::string content);
     int64_t write_with_lock(const char* content, int64_t offset = 0);
     int64_t write_non_lock(const char* content);
     bool is_emtpy_brackets();
 private:
+    std::string fp;
     int fd;
 };
 
-AtomicFile::AtomicFile(std::string file_path) {
+AtomicFile::AtomicFile(const std::string& file_path) : fp(file_path) {
     fd = open(file_path.c_str(), O_RDWR | O_CREAT, 0666);
+    LOG() << "fd: " << fd;
     if (fd < 0) {
         ELOG() << "open file failed" << file_path;
     }
 }
 
+AtomicFile::AtomicFile(const AtomicFile& file) {
+    this->fd  = open(file.fp.c_str(), O_RDWR | O_CREAT, 0666);
+    if (fd < 0) {
+        ELOG() << "open file failed" << file.fp;
+    }
+}
+
+AtomicFile& AtomicFile::operator=(const AtomicFile& file) {
+    this->fd = open(file.fp.c_str(), O_RDWR | O_CREAT, 0666);
+    if (fd < 0) {
+        ELOG() << "open file failed" << file.fp;
+    }
+    return *this;
+}
+
 AtomicFile::~AtomicFile() {
-    close(fd);
+    if (fd > -1) {
+        close(fd);
+    }
 }
 
 int64_t AtomicFile::write_with_lock(const char* content, int64_t offset) {
-    // LOG() << "write str: " << content;
+    CHECK(fd > -1, "not implemented AtomiceFile object with fd: < 0");
     flock(fd, LOCK_EX);
     lseek(fd, offset, SEEK_END);
     int64_t len = write(fd, content, strlen(content));
@@ -60,19 +82,21 @@ int64_t AtomicFile::write_with_lock(const char* content, int64_t offset) {
 }
 
 int64_t AtomicFile::write_non_lock(const char* content) {
+    CHECK(fd > -1, "not implemented AtomiceFile object with fd: < 0");
     lseek(fd, 0L, SEEK_END);
     int64_t len = write(fd, content, strlen(content));
+    fsync(fd);
     return len;
 }
 
 bool AtomicFile::is_emtpy_brackets() {
+    CHECK(fd > -1, "not implemented AtomiceFile object with fd: < 0");
     int64_t offset = lseek(fd, -2, SEEK_END);
     if (offset == -1) {
         ELOG() << "lseek failed, the file may be empty";
     }
     char buffer[2];
     read(fd, buffer, 2);
-    std::cout << buffer[0] << buffer[1];
     if (buffer[0] == '}' && buffer[1] == ']') {
         return false;
     }
@@ -130,12 +154,15 @@ class Timer {
     ~Timer();
     Timer(int64_t size);
     void record_time(std::string ph = "B", std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
+    void record_time_pair(int64_t ns, std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
     int64_t get_time();
     void set_size(int64_t size);
     void set_flag();
     void record_duration();
     int64_t get_duration();
     void write_brackets();
+    void set_file_path(const std::string& path);
+    void write_json();
     std::mutex mtx;
     static void enable_timer();
     static bool enable;
@@ -158,20 +185,23 @@ class Timer {
 
 bool Timer::enable = false;
 
-Timer::Timer() : start(high_resolution_clock::now()), rank(get_rank()), file(AtomicFile("/tmp/profiling.json")) {
+Timer::Timer() : start(high_resolution_clock::now()), rank(get_rank()) {
     pre_time_point = start;
     sec_time_point = pre_time_point;
-    write_brackets();
 }
 
-Timer::Timer(int64_t size) : start(high_resolution_clock::now()), rank(get_rank()), file(AtomicFile("/tmp/profiling.json")) {
+Timer::Timer(int64_t size) : start(high_resolution_clock::now()), rank(get_rank()) {
     pre_time_point = start;
     sec_time_point = pre_time_point;
     times.reserve(size);
-    write_brackets();
 }
 
 void Timer::enable_timer() { enable = true; }
+
+void Timer::set_file_path(const std::string& path) {
+    file = AtomicFile(path);
+    write_brackets();
+}
 
 void Timer::record_time(std::string ph, std::string name, std::string tid, std::string cname) {
     high_resolution_clock::time_point time_point = std::chrono::high_resolution_clock::now();
@@ -183,6 +213,23 @@ void Timer::record_time(std::string ph, std::string name, std::string tid, std::
     cnames.push_back(cname);
 }
 
+void Timer::record_time_pair(int64_t ns, std::string name, std::string tid, std::string cname) {
+    high_resolution_clock::time_point time_point = std::chrono::high_resolution_clock::now();
+    std::chrono::nanoseconds dur(ns);
+    auto begin = time_point - dur;
+    std::unique_lock<std::mutex> lock(mtx);
+    times.push_back(std::move(begin));
+    names.push_back(name);
+    tids.push_back(tid);
+    phs.push_back("B");
+    cnames.push_back(cname);
+
+    times.push_back(std::move(time_point));
+    names.push_back(name);
+    tids.push_back(tid);
+    phs.push_back("E");
+    cnames.push_back(cname);
+}
 
 int64_t Timer::get_time() {
     auto cur = std::chrono::high_resolution_clock::now();
@@ -225,6 +272,9 @@ void Timer::write_brackets() {
         lock::do_func_in_one_process([&]() {
             std::string brackets = "[\n]";
             auto len = file.write_non_lock(brackets.c_str());
+            if (len < 0) {
+                ELOG() << "write_brackets failed";
+            }
         });
     }
 }
@@ -257,8 +307,6 @@ Timer::~Timer() {
         j_str += "]";
         file.write_with_lock(j_str.c_str(), -1);
     }
-
-    // file.write_with_lock("]\n");
 }
 
 typedef utils::Singleton<Timer> TimerSingletone;
@@ -283,6 +331,13 @@ void record_time(std::string ph , std::string name , std::string tid, std::strin
     }
 }
 
+void record_time_pair(int64_t ns, std::string name, std::string tid, std::string cname) {
+    if (Timer::enable) {
+        DLOG() <<  "recored_pre_time ns:" << ns << ", name: " << name << ", tid: " << tid << ", cname: " << cname;
+        TimerSingletone::instance().get_elem()->record_time_pair(ns, name, tid, cname); 
+    }
+}
+
 void record_duration() {
     if (Timer::enable) {
         TimerSingletone::instance().get_elem()->record_duration();
@@ -298,6 +353,12 @@ int64_t get_duration() {
 
 void enable_timer() {
     Timer::enable = true;
+}
+
+void set_record_path(const std::string& path) {
+    if (Timer::enable) {
+        TimerSingletone::instance().get_elem()->set_file_path(path);;
+    }
 }
 
 } // namespace timer

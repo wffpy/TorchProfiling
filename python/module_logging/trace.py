@@ -7,13 +7,25 @@ if cpp_extend == "True":
     from . import Hook
 
 
-class ProfilingLogger(TorchDispatchMode):
+class Tracer(TorchDispatchMode):
     """
     insert delimiters before and and after op execution
     """
 
-    def __init__(self, model=None) -> None:
+    def __init__(self, model=None, path=None) -> None:
         super().__init__()
+        # enable timer recording
+        Hook.enable_profiling()
+
+        # install hooks for some runtime api / fprintf to record time
+        Hook.install_hook()
+
+        # set path to record profiling data
+        if path is None:
+            Hook.set_record_path("/tmp/profiling.json")
+        else:
+            Hook.set_record_path(path)
+            
         if model is None:
             return
         else:

@@ -126,6 +126,22 @@ example:
 ```
 
 
+### Trace And
+#### Step 1:
+
+```
+import module_logging as ml
+with ml.trace.Tracer(model=m, path="/tmp/profiling.log"):
+    m()
+```
+- model: optional, set the nn.Module to profiling, [nn.Module]  or nn.Module
+- path: optional a file path to save the profiling result
+
+#### Step 2:
+open the json file with:
+chrome://tracing/
+
+
 ### C Function Counter
 TODO:
 use a different hook function which will try to modify the hooked function's assembly code.
