@@ -123,6 +123,8 @@ with ml.trace.Tracer(model=m, path="/tmp/profiling.log"):
 open the json file with:
 chrome://tracing/
 
+![image](https://github.com/wffpy/TorchProfiling/blob/main/IMG/trace.png)
+
 
 ### C Function Counter
 TODO:
