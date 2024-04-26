@@ -146,6 +146,7 @@ class LocalOp(object):
 class OpSummary(object):
     def __init__(self, time) -> None:
         self.call_count = 1
+        # ms
         self.total_time = time
         self.min = time
         self.max = time
@@ -173,6 +174,19 @@ class OpSummary(object):
     def get_call_count(self):
         return self.call_count
 
+class DistOpSummary(OpSummary):
+    def __init__(self, time, bytes) -> None:
+        super().__init__(time)
+        self.total_bytes = bytes
+    
+    def add_bytes(self, byt):
+        self.total_bytes += byt
+    
+    def get_total_bytes(self):
+        return self.total_bytes
+
+    def get_avg_bw(self):
+        return self.total_bytes / self.total_time / 1000000
 
 class ModuleStack(object):
     def __init__(self) -> None:
@@ -209,6 +223,7 @@ class Analyzer:
         self.stack = ModuleStack()
         self.op_or_module = []
         self.total = 0
+        self.total_bytes = 0
 
     def identify_step_beign_or_end(self, line: str):
         """
@@ -312,6 +327,7 @@ class Analyzer:
         if self.collection_state == STATE.OP and "[END_SYMBOL]" in line:
             Logger.debug("Op End")
             self.total += self.current_op.get_time()
+            self.total_bytes += self.current_op.get_bytes()
             if self.current_module is not None:
                 self.current_module.add_elem(self.current_op)
             else:
@@ -380,6 +396,10 @@ class Analyzer:
 
     def get_total(self):
         return self.total
+
+    # use two sub-class to analysis formal op and distribution op 
+    def get_total_bytes(self):
+        return self.total_bytes
 
     def analysis(self):
         lines = []
@@ -472,6 +492,54 @@ class Analyzer:
         table.set_style(pt.DEFAULT)
         table.align = "l"
         return table
+    
+    def gen_dist_total_table(self):
+        mean_bw = self.total_bytes / self.total / 1000000
+        table = pt.PrettyTable(["Mean Bandwidth(GB/s)"])
+        table.add_row([mean_bw])
+
+        final_list = self.get_op_list()
+        op_dict = {}
+        for elem in final_list:
+            k = elem.get_name()
+            v = elem.get_time()
+            by = elem.get_bytes()
+            if v == 0:
+                continue
+            if k in op_dict:
+                op_dict[k].add_time(v)
+                op_dict[k].add_bytes(by)
+            else:
+                op_summary = DistOpSummary(v, by)
+                op_dict[k] = op_summary
+        op_list = sorted(
+            op_dict.items(), key=lambda x: x[1].get_total_time(), reverse=True
+        )
+
+        table = pt.PrettyTable(
+            [
+                "Op",
+                "Total Time(ms)",
+                "Total Bytes",
+                "Avg Badnwidth(GB/s)",
+                "Percent(%)"
+            ]
+        )
+        for op in op_list:
+            percent = op[1].get_avg_bw() / 20 
+            table.add_row(
+                [
+                    fill(op[0], width=40),
+                    op[1].get_total_time(),
+                    op[1].get_total_bytes(),
+                    op[1].get_avg_bw(),
+                    percent,
+                ]
+            )
+        table.align = "l"
+        return table
+        
+
 
     def gen_detail_table(self):
         """

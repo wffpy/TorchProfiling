@@ -104,8 +104,12 @@ def parse_log():
     elif args.dist:
         analyzer = Analyzer(args.path)
         analyzer.analysis_dist()
-        dist_table = analyzer.gen_dist_table()
-        write_table(dist_table, "dist", args.csv)
+        if args.summary:
+            total_table = analyzer.gen_dist_total_table()
+            write_table(total_table, "Distribution Mean Bandwidth", args.csv)
+        else:
+            dist_table = analyzer.gen_dist_table()
+            write_table(dist_table, "Distribution Detail Table", args.csv)
         
     elif not args.compare:
         analyzer = Analyzer(args.path)
