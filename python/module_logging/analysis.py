@@ -468,8 +468,7 @@ class Analyzer:
         ----------------------------------------------------------------------------
         Net                       all_reduce      1000     10     10.3456789         10.3456789/20
         """
-        # _list = []
-        final_list = self.get_op_list()
+        final_list = []
         for elem in self.op_or_module:
             if isinstance(elem, LocalModule):
                 for local_elem in elem.dfs_traverse():
@@ -551,7 +550,7 @@ class Analyzer:
         BatchNorm2d                 batch_norm            1.2345678
         """
         # _list = []
-        final_list = self.get_op_list()
+        # final_list = self.get_op_list()
         for elem in self.op_or_module:
             if isinstance(elem, LocalModule):
                 for local_elem in elem.dfs_traverse():
