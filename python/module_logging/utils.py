@@ -77,6 +77,9 @@ origin_broadcast = torch.distributed.broadcast
 origin_barrier = torch.distributed.barrier
 origin__all_gather_base = torch.distributed._all_gather_base
 origin__reduce_scatter_base = torch.distributed._reduce_scatter_base
+origin_all_gather = torch.distributed.all_gather
+origin_send = torch.distributed.send
+origin_recv = torch.distributed.recv
         
 def mock_all_reduce(tensor, op=ReduceOp.SUM, group=None, async_op=False):
     print("[DIST START_SYMBOL]: torch.distributed.all_reduce", flush=True)
@@ -99,6 +102,13 @@ def mock_barrier(group=None, async_op=False, device_ids=None):
 
 # def mock_all_gather(tensor_list, tensor, group=None, async_op=False):
 #     return
+def mock_all_gather(tensor_list, tensor, group=None, async_op=False):
+    print("[START_SYMBOL]: torch.distributed.all_gather", flush=True)
+    bytest = tensor.numel() * tensor.element_size()
+    print("[DIST BYTES]:{} bytes".format(bytest), flush=True)
+    origin_all_gather(tensor_list, tensor, group, async_op)
+    print("[END_SYMBOL]: torch.distributed.all_gather", flush=True)
+    return
 
 def mock__all_gather_base(output_tensor, input_tensor, group=None, async_op=False):
     print("[START_SYMBOL]: torch.distributed._all_gather_base", flush=True)
@@ -107,7 +117,6 @@ def mock__all_gather_base(output_tensor, input_tensor, group=None, async_op=Fals
     origin__all_gather_base(output_tensor, input_tensor, group, async_op)
     print("[END_SYMBOL]: torch.distributed._all_gather_base", flush=True)
     return
-
 
 def mock__reduce_scatter_base(
     output, input, op=ReduceOp.SUM, group=None, async_op=False
@@ -119,6 +128,22 @@ def mock__reduce_scatter_base(
     print("[DIST END_SYMBOL]: torch.distributed._reduce_scatter_base", flush=True)
     return
 
+def mock_send(tensor: torch.Tensor, dst: int, group: Optional[ProcessGroup] = None, tag: int = 0) -> None:
+    print("[DIST START_SYMBOL]: torch.distributed.send", flush=True)
+    bytest = tensor.numel() * tensor.element_size()
+    print("[DIST BYTES]:{} bytes".format(bytest), flush=True)
+    ret = origin_send(tensor, dst, group, tag)
+    print("[DIST END_SYMBOL]: torch.distributed.send", flush=True)
+    return ret 
+
+def mock_recv(tensor: torch.Tensor, src: Optional[int] = None, group: Optional[ProcessGroup] = None, tag: int = 0) -> None:
+    print("[DIST START_SYMBOL]: torch.distributed.recv", flush=True)
+    bytest = tensor.numel() * tensor.element_size()
+    print("[DIST BYTES]:{} bytes".format(bytest), flush=True)
+    ret = origin_recv(tensor, src, group, tag)
+    print("[DIST END_SYMBOL]: torch.distributed.recv", flush=True)
+    return  ret
+
 def monkey_patch():
     '''
     Dist Op Monkey Patch
@@ -128,5 +153,8 @@ def monkey_patch():
     torch.distributed.barrier = mock_barrier
     torch.distributed._all_gather_base = mock__all_gather_base
     torch.distributed._reduce_scatter_base = mock__reduce_scatter_base
+    torch.distributed.all_gather = mock_all_gather
+    torch.distributed.send = mock_send
+    torch.distributed.recv = mock_recv
 
 
