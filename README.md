@@ -66,6 +66,9 @@ python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log
 # must profiling with Mode 2
 python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log --csv
 
+# analysis the  distribution op
+python -m module_logging --dist --path 7.log 
+
 ```
 
 ### 2. 统计C函数调用次数
@@ -108,7 +111,7 @@ example:
 ```
 
 
-### Trace And
+### 4. Trace And Visualization
 #### Step 1:
 
 ```

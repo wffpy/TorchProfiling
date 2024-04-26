@@ -56,6 +56,8 @@ def parse_args():
 
     arg_parser.add_argument("--cut_log", action="store_true", help="split log")
 
+    arg_parser.add_argument("--dist", action="store_true", help="analysis distributed ops")
+
     arg_parser.add_argument(
         "--begin",
         action="store",
@@ -99,6 +101,12 @@ def parse_log():
         print("args.begin: {}".format(args.begin))
         print("args.end: {}".format(args.end))
         extract_section(args.path, args.begin, args.end)
+    elif args.dist:
+        analyzer = Analyzer(args.path)
+        analyzer.analysis_dist()
+        dist_table = analyzer.gen_dist_table()
+        write_table(dist_table, "dist", args.csv)
+        
     elif not args.compare:
         analyzer = Analyzer(args.path)
         analyzer.analysis()

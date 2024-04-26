@@ -16,6 +16,8 @@ class STATE(Enum):
     BEGIN = auto()
     MODULE = auto()
     FORMAL = auto()
+    OP = auto()
+    DISTOP = auto()
     STOP = auto()
 
 
@@ -112,15 +114,30 @@ class LocalOp(object):
         self._name_ = name
         self.module_name = m_name
         self._time_ = time
+        self._bytes_ = 0
 
     def set_time(self, time):
+        # ms
         self._time_ += time
+    
+    def set_bytes(self, bts):
+        self._bytes_ = bts
 
     def get_name(self):
         return self._name_
 
     def get_time(self):
+        # ms
         return self._time_
+    
+    def get_bytes(self):
+        return self._bytes_
+
+    def get_bw(self):
+        # GB/s
+        if self._time_ == 0:
+            return 0
+        return self._bytes_ / self._time_ / 1000000
 
     def get_module_name(self):
         return self.module_name
@@ -285,16 +302,14 @@ class Analyzer:
             or self.collection_state == STATE.MODULE
         ) and "[START_SYMBOL]" in line:
             Logger.debug("Op Start")
+            self.collection_state = STATE.OP
             self.current_op_name = line.rstrip("\n").split(":")[-1].replace("_", " ")
             self.current_op = LocalOp(self.current_op_name, self.current_m_name)
             return True
         return False
 
     def identify_op_end(self, line: str):
-        if (
-            self.collection_state == STATE.FORMAL
-            or self.collection_state == STATE.MODULE
-        ) and "[END_SYMBOL]" in line:
+        if self.collection_state == STATE.OP and "[END_SYMBOL]" in line:
             Logger.debug("Op End")
             self.total += self.current_op.get_time()
             if self.current_module is not None:
@@ -302,17 +317,64 @@ class Analyzer:
             else:
                 self.op_or_module.append(self.current_op)
             self.current_op = None
+            self.collection_state = (
+                STATE.FORMAL if self.current_module is None else STATE.MODULE
+            )
+            return True
+        return False
+
+    def identify_dist_op_start(self, line: str):
+        """
+        args:
+            line: a string of log file
+        return:
+            bool
+        Function:
+        1. identify the op by following symbols: [START_SYMBOL], [END_SYMBOL]
+        2. if there is no op in this iteration, return None
+        """
+        if (
+            self.collection_state == STATE.FORMAL
+            or self.collection_state == STATE.MODULE
+        ) and "[DIST START_SYMBOL]" in line:
+            Logger.debug("DIST Op Start")
+            self.collection_state = STATE.DISTOP
+            self.current_op_name = line.rstrip("\n").split(":")[-1].replace("_", " ")
+            self.current_op = LocalOp(self.current_op_name, self.current_m_name)
+            return True
+        return False
+
+    def identify_dist_op_end(self, line: str):
+        if self.collection_state == STATE.DISTOP and "[DIST END_SYMBOL]" in line:
+            Logger.debug("DIST Op End")
+            self.total += self.current_op.get_time()
+            if self.current_module is not None:
+                self.current_module.add_elem(self.current_op)
+            else:
+                self.op_or_module.append(self.current_op)
+            self.current_op = None
+            self.collection_state = (
+                STATE.FORMAL if self.current_module is None else STATE.MODULE
+            )
             return True
         return False
 
     def identify_op_time(self, line: str):
         if (
-            self.collection_state == STATE.FORMAL
-            or self.collection_state == STATE.MODULE
+            self.collection_state == STATE.OP
+            or self.collection_state == STATE.DISTOP
         ) and "[XPURT_PROF]" in line:
             Logger.debug("Op Time")
             if self.current_op:
                 self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
+            return True
+        return False
+    
+    def identify_dist_bytes(self, line:str):
+        if self.collection_state == STATE.DISTOP and "[DIST BYTES]" in line:
+            Logger.debug("DIST Bytes")
+            if self.current_op:
+                self.current_op.set_bytes(int(line.split(" ")[-2]))
             return True
         return False
 
@@ -343,6 +405,30 @@ class Analyzer:
             else:
                 self.identify_op_time(line)
 
+    def analysis_dist(self):
+        '''
+        ananlyis the distributed ops
+        '''
+        lines = []
+        with open(self.log_path, "r") as f:
+            lines = f.readlines()
+        line_index =0
+        for line in lines:
+            Logger.debug("Line {}: {}".format(line_index, line))
+            line_index += 1
+            if self.identify_module_begin(line):
+                continue
+            elif self.identify_module_end(line):
+                continue
+            elif self.identify_dist_op_start(line):
+                continue
+            elif self.identify_dist_op_end(line):
+                continue
+            elif self.identify_dist_bytes(line):
+                continue
+            else:
+                self.identify_op_time(line)
+
     def get_op_list(self):
         final_list = []
         for elem in self.op_or_module:
@@ -352,6 +438,40 @@ class Analyzer:
             elif isinstance(elem, LocalOp):
                 final_list.append(elem)
         return final_list
+
+
+    def gen_dist_table(self):
+        """
+        Function:
+        1. generate a table with the following format:
+        Module                     Aten Op        Bytes   Time(ms)     BW(GB/s)           Percent
+        ----------------------------------------------------------------------------
+        Net                       all_reduce      1000     10     10.3456789         10.3456789/20
+        """
+        # _list = []
+        final_list = self.get_op_list()
+        for elem in self.op_or_module:
+            if isinstance(elem, LocalModule):
+                for local_elem in elem.dfs_traverse():
+                    final_list.append(local_elem)
+            elif isinstance(elem, LocalOp):
+                final_list.append(elem)
+
+        table = pt.PrettyTable(["Module", "Dist Op", "Bytes", "Time(ms)", "BW(GB/s)", "Percent(BW/20)"])
+        for elem in final_list:
+            table.add_row(
+                [
+                    fill(elem.get_module_name(), width=50),
+                    elem.get_name(),
+                    elem.get_bytes(),
+                    elem.get_time(),
+                    elem.get_bw(),
+                    elem.get_bw() / 20
+                ]
+            )
+        table.set_style(pt.DEFAULT)
+        table.align = "l"
+        return table
 
     def gen_detail_table(self):
         """
