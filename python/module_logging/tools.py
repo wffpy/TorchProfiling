@@ -4,7 +4,7 @@ from asyncore import write
 import pathlib
 import sys
 from .analysis_xpu_log import parse_log as parse_xpu_log
-from .analysis import Analyzer, gen_module_compare_tables, gen_module_compare_table_str
+from .analysis import AtenOpAnalyzer, DistAnalyzer, gen_module_compare_tables, gen_module_compare_table_str
 import prettytable as pt
 from .cut_log import extract_section
 
@@ -102,20 +102,20 @@ def parse_log():
         print("args.end: {}".format(args.end))
         extract_section(args.path, args.begin, args.end)
     elif args.dist:
-        analyzer = Analyzer(args.path)
-        analyzer.analysis_dist()
+        analyzer = DistAnalyzer(args.path)
+        analyzer.analysis()
         if args.summary:
-            total_table = analyzer.gen_dist_total_table()
+            total_table = analyzer.gen_summary_table()
             write_table(total_table, "Distribution Mean Bandwidth", args.csv)
         else:
-            dist_table = analyzer.gen_dist_table()
+            dist_table = analyzer.gen_detail_table()
             write_table(dist_table, "Distribution Detail Table", args.csv)
         
     elif not args.compare:
-        analyzer = Analyzer(args.path)
+        analyzer = AtenOpAnalyzer(args.path)
         analyzer.analysis()
         if args.all:
-            s_table = analyzer.gen_max_min_avg_table()
+            s_table = analyzer.gen_summary_table()
             d_table = analyzer.gen_detail_table()
             t_table = analyzer.gen_total_time_table()
             write_table(s_table, "summary", args.csv)
@@ -126,15 +126,15 @@ def parse_log():
                 t_table = analyzer.gen_total_time_table()
                 write_table(t_table, "total", args.csv)
             if args.summary:
-                s_table = analyzer.gen_max_min_avg_table()
+                s_table = analyzer.gen_summary_table()
                 write_table(s_table, "summary", args.csv)
             if args.detail:
                 d_table = analyzer.gen_detail_table()
                 write_table(d_table, "detail", args.csv)
 
     elif args.compare and args.lhs_path and args.rhs_path:
-        analyzer1 = Analyzer(args.lhs_path)
-        analyzer2 = Analyzer(args.rhs_path)
+        analyzer1 = AtenOpAnalyzer(args.lhs_path)
+        analyzer2 = AtenOpAnalyzer(args.rhs_path)
         if args.csv:
             table_str = gen_module_compare_table_str(analyzer1, analyzer2)
             with open("/tmp/compare.csv", "w") as f:
