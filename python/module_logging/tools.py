@@ -118,9 +118,13 @@ def parse_log():
             s_table = analyzer.gen_summary_table()
             d_table = analyzer.gen_detail_table()
             t_table = analyzer.gen_total_time_table()
-            write_table(s_table, "summary", args.csv)
-            write_table(d_table, "detail", args.csv)
-            write_table(t_table, "total", args.csv)
+            unknown_total_table = analyzer.gen_unknown_total_table()
+            unknown_summary_table = analyzer.gen_unknown_time_table()
+            write_table(s_table, "known summary", args.csv)
+            write_table(d_table, "known detail", args.csv)
+            write_table(t_table, "total known", args.csv)
+            write_table(unknown_total_table, "total unknown", args.csv)
+            write_table(unknown_summary_table, "unknown summary", args.csv)
         else:
             if args.total:
                 t_table = analyzer.gen_total_time_table()
@@ -128,6 +132,10 @@ def parse_log():
             if args.summary:
                 s_table = analyzer.gen_summary_table()
                 write_table(s_table, "summary", args.csv)
+                unknown_total_table = analyzer.gen_unknown_total_table()
+                unknown_summary_table = analyzer.gen_unknown_time_table()
+                write_table(unknown_total_table, "total unknown", args.csv)
+                write_table(unknown_summary_table, "unknown summary", args.csv)
             if args.detail:
                 d_table = analyzer.gen_detail_table()
                 write_table(d_table, "detail", args.csv)

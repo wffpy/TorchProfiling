@@ -236,6 +236,8 @@ class Analyzer:
         args:
             path: the path of log file
         """
+        from collections import defaultdict
+        self.unknown_xpurt_prof = defaultdict(lambda : OpSummary(0))
         if not osp.exists(path):
             raise FileNotFoundError("log file {} doesn't find".format(path))
         self.log_path = path
@@ -333,14 +335,23 @@ class Analyzer:
         pass
 
     def identify_op_time(self, line: str):
-        if (
-            self.collection_state == STATE.OP
-            or self.collection_state == STATE.DISTOP
-        ) and "[XPURT_PROF]" in line:
-            Logger.debug("Op Time")
-            if self.current_op:
-                self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
+        if "[XPURT_PROF]" in line:
+            kernel_name = line.split(" ")[1]
+            kernel_time = float(line.split(" ")[-2]) / 1000000
+            if (
+                self.collection_state == STATE.OP
+                or self.collection_state == STATE.DISTOP
+            ):
+                
+                Logger.debug("Op Time")
+                if self.current_op:
+                    self.current_op.set_time(kernel_time)
+                else:
+                    self.unknown_xpurt_prof[kernel_name].add_time(kernel_time)
+            else:
+                self.unknown_xpurt_prof[kernel_name].add_time(kernel_time)
             return True
+        
         return False
 
     def get_total(self):
@@ -375,6 +386,54 @@ class Analyzer:
         """
         table = pt.PrettyTable(["Total Time(ms)"])
         table.add_row([self.get_total()])
+        return table
+    
+    
+    def gen_unknown_time_table(self):
+        table = pt.PrettyTable(
+                [
+                    "Unknown_Kernel",
+                    "Max Time(ms)",
+                    "Min Time(ms)",
+                    "Avg Time(ms)",
+                    "Total Time(ms)",
+                    "Count",
+                ]
+            )
+        
+        op_list = sorted(
+            self.unknown_xpurt_prof.items(), key=lambda x: x[1].get_total_time(), reverse=True
+        )
+        for kernel_name, op_summary in op_list:
+            table.add_row(
+                [
+                    fill(kernel_name, width=60),
+                    op_summary.get_max(),
+                    op_summary.get_min(),
+                    op_summary.get_avg(),
+                    op_summary.get_total_time(),
+                    op_summary.get_call_count(),
+                ]
+            )
+        return table
+        
+        
+    def gen_unknown_total_table(self):
+        total_time = 0
+        for kernel_name, op_summary in self.unknown_xpurt_prof.items():
+            total_time += op_summary.get_total_time()
+
+        table = pt.PrettyTable(
+            [
+                "Total_Unknown_Kernel time",
+            ]
+        )
+        
+        table.add_row(
+            [
+                total_time
+            ]
+        )
         return table
 
     def get_modules(self):
