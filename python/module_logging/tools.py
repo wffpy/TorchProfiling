@@ -104,12 +104,19 @@ def parse_log():
     elif args.dist:
         analyzer = DistAnalyzer(args.path)
         analyzer.analysis()
-        if args.summary:
-            total_table = analyzer.gen_summary_table()
-            write_table(total_table, "Distribution Mean Bandwidth", args.csv)
+        if args.all:
+            s_table = analyzer.gen_summary_table()
+            d_table = analyzer.gen_detail_table()
+            write_table(s_table, "summary", args.csv)
+            write_table(d_table, "detail", args.csv)
         else:
-            dist_table = analyzer.gen_detail_table()
-            write_table(dist_table, "Distribution Detail Table", args.csv)
+            if args.summary:
+                s_table = analyzer.gen_summary_table()
+                write_table(s_table, "summary", args.csv)
+                write_table(s_table, "summary", args.csv)
+            if args.detail:
+                d_table = analyzer.gen_detail_table()
+                write_table(d_table, "detail", args.csv)
         
     elif not args.compare:
         analyzer = AtenOpAnalyzer(args.path)

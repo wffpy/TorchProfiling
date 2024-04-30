@@ -114,15 +114,11 @@ class OpInfoBase(object):
         self._name_ = name
         self.module_name = m_name
         self._time_ = time
-        # self._bytes_ = 0
 
     def set_time(self, time):
         # ms
         self._time_ += time
     
-    # def set_bytes(self, bts):
-    #     self._bytes_ = bts
-
     def get_name(self):
         return self._name_
 
@@ -130,15 +126,6 @@ class OpInfoBase(object):
         # ms
         return self._time_
     
-    # def get_bytes(self):
-    #     return self._bytes_
-
-    # def get_bw(self):
-    #     # GB/s
-    #     if self._time_ == 0:
-    #         return 0
-    #     return self._bytes_ / self._time_ / 1000000
-
     def get_module_name(self):
         return self.module_name
     
@@ -835,7 +822,12 @@ def gen_module_compare_tables(analyzer1, analyzer2):
 
 
 def gen_module_compare_table_str(analyzer1, analyzer2):
-    table_list = gen_module_compare_tables(analyzer1, analyzer2)
-    for table in table_list:
-        table_str += table.get_string() + "\n"
-    return table_str
+    if isinstance(analyzer1, AtenOpAnalyzer) and isinstance(analyzer2, AtenOpAnalyzer):
+        table_list = gen_module_compare_tables(analyzer1, analyzer2)
+        for table in table_list:
+            table_str += table.get_string() + "\n"
+        return table_str
+    elif isinstance(analyzer1, DistAnalyzer) and isinstance(analyzer2, DistAnalyzer):
+        Logger.error("for distribution op, not supported yet.")
+    else:
+        Logger.error("The 2 analyzers are not the same type")
