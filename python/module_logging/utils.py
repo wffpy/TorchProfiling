@@ -127,19 +127,19 @@ def mock_barrier(group=None, async_op=False, device_ids=None):
 # def mock_all_gather(tensor_list, tensor, group=None, async_op=False):
 #     return
 def mock_all_gather(tensor_list, tensor, group=None, async_op=False):
-    print("[START_SYMBOL]: torch.distributed.all_gather", flush=True)
+    print("[DIST START_SYMBOL]: torch.distributed.all_gather", flush=True)
     bytest = tensor.numel() * tensor.element_size()
     print("[DIST BYTES]:{} bytes".format(bytest), flush=True)
     ret = origin_all_gather(tensor_list, tensor, group, async_op)
-    print("[END_SYMBOL]: torch.distributed.all_gather", flush=True)
+    print("[DIST END_SYMBOL]: torch.distributed.all_gather", flush=True)
     return ret
 
 def mock__all_gather_base(output_tensor, input_tensor, group=None, async_op=False):
-    print("[START_SYMBOL]: torch.distributed._all_gather_base", flush=True)
+    print("[DIST START_SYMBOL]: torch.distributed._all_gather_base", flush=True)
     bytest = output_tensor.numel() * output_tensor.element_size()
     print("[DIST BYTES]:{} bytes".format(bytest), flush=True)
     ret = origin__all_gather_base(output_tensor, input_tensor, group, async_op)
-    print("[END_SYMBOL]: torch.distributed._all_gather_base", flush=True)
+    print("[DIST END_SYMBOL]: torch.distributed._all_gather_base", flush=True)
     return ret
 
 def mock__reduce_scatter_base(
