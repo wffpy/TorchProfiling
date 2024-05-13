@@ -93,20 +93,7 @@ def func_torch_distributed_wrapper(func):
     def wrapper(*args, **kwargs):
         if callable(func):
             result = func(*args, **kwargs)
-            if isinstance(args, tuple):
-                args_info = ", ".join(
-                    [
-                        f"args_{idx} shape {arg.shape}, dtype {arg.dtype} "
-                        for idx, arg in enumerate(args)
-                    ]
-                )
-                print(
-                    f"[PPROBE] torch.distributed.{func.__qualname__} {args_info}, kwargs {kwargs}"
-                )
-            else:
-                print(
-                    f"[PPROBE] torch.distributed.{func.__qualname__} args {args}, kwargs {kwargs} "
-                )
+            #TODO: 打印分布式op的分割信息
             return result
         else:
             print(f"func:{func} is not callable")
