@@ -12,8 +12,19 @@ class Tracer(TorchDispatchMode):
     insert delimiters before and and after op execution
     """
 
-    def __init__(self, model=None, path=None) -> None:
+    def __init__(self, model=None, path=None, profling_bw=False) -> None:
+        '''
+        model: nn.Module or nn.Module list to be traced
+        path: path to save profiling data
+        profling_bw: whether to profile backward pass, for some specific case, profiling backward pass 
+                     will lead to following error: RuntimeError:
+                     "Output 0 of BackwardHookFunctionBackward is a view and is being modified inplace.
+                     This view was created inside a custom Function (or because an input was returned as-is) 
+                     and the autograd logic to handle view+inplace would override the custom backward associated with the custom Function, leading to incorrect gradients. This behavior is forbidden. 
+                     You can fix this by cloning the output of the custom Function."
+        '''
         super().__init__()
+        self.profiling_backward = profling_bw
         # enable timer recording
         Hook.enable_profiling()
 
@@ -96,10 +107,11 @@ class Tracer(TorchDispatchMode):
         module.register_forward_pre_hook(self.pre_forward_hook_wrapper(name, level))
         module.register_forward_hook(self.post_forward_hook_wrapper(name, level))
 
-        module.register_full_backward_pre_hook(
-            self.pre_backward_hook_wrapper(name, level)
-        )
-        module.register_full_backward_hook(self.post_backward_hook_wrapper(name, level))
+        if self.profiling_backward:
+            module.register_full_backward_pre_hook(
+                self.pre_backward_hook_wrapper(name, level)
+            )
+            module.register_full_backward_hook(self.post_backward_hook_wrapper(name, level))
 
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:
