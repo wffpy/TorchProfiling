@@ -101,6 +101,15 @@ origin__reduce_scatter_base = None
 origin_all_gather = None
 origin_send = None
 origin_recv = None
+
+def singleton(cls):
+    _instance = {}
+
+    def inner():
+        if cls not in _instance:
+            _instance[cls] = cls()
+        return _instance[cls]
+    return inner
         
 def mock_all_reduce(tensor, op=ReduceOp.SUM, group=None, async_op=False):
     print("[DIST START_SYMBOL]: torch.distributed.all_reduce", flush=True)
@@ -168,37 +177,50 @@ def mock_recv(tensor: torch.Tensor, src: Optional[int] = None, group: Optional[P
     print("[DIST END_SYMBOL]: torch.distributed.recv", flush=True)
     return  ret
 
-def monkey_patch():
-    '''
-    Dist Op Monkey Patch
-    '''
-    global origin_all_reduce
-    global origin_broadcast
-    global origin_barrier
-    global origin__all_gather_base
-    global origin__reduce_scatter_base
-    global origin_all_gather
-    global origin_send
-    global origin_recv
-    
-    origin_all_reduce = torch.distributed.all_reduce
-    origin_broadcast = torch.distributed.broadcast
-    origin_barrier = torch.distributed.barrier
-    origin__all_gather_base = torch.distributed._all_gather_base
-    origin__reduce_scatter_base = torch.distributed._reduce_scatter_base
-    origin_all_gather = torch.distributed.all_gather
-    origin_send = torch.distributed.send
-    origin_recv = torch.distributed.recv
-    
-    # we should apply monkey patch immediately after we save original function
-    
-    torch.distributed.all_reduce = mock_all_reduce
-    torch.distributed.broadcast = mock_broadcast
-    torch.distributed.barrier = mock_barrier
-    torch.distributed._all_gather_base = mock__all_gather_base
-    torch.distributed._reduce_scatter_base = mock__reduce_scatter_base
-    torch.distributed.all_gather = mock_all_gather
-    torch.distributed.send = mock_send
-    torch.distributed.recv = mock_recv
+@singleton
+class DistOpMonkeyPatch(object):
 
+    def __init__(self):
+        global origin_all_reduce
+        global origin_broadcast
+        global origin_barrier
+        global origin__all_gather_base
+        global origin__reduce_scatter_base
+        global origin_all_gather
+        global origin_send
+        global origin_recv
 
+        origin_all_reduce = torch.distributed.all_reduce
+        origin_broadcast = torch.distributed.broadcast
+        origin_barrier = torch.distributed.barrier
+        origin__all_gather_base = torch.distributed._all_gather_base
+        origin__reduce_scatter_base = torch.distributed._reduce_scatter_base
+        origin_all_gather = torch.distributed.all_gather
+        origin_send = torch.distributed.send
+        origin_recv = torch.distributed.recv
+
+    def replace(self):
+        '''
+        use monkey patch to replace the original function
+        '''
+        torch.distributed.all_reduce = mock_all_reduce
+        torch.distributed.broadcast = mock_broadcast
+        torch.distributed.barrier = mock_barrier
+        torch.distributed._all_gather_base = mock__all_gather_base
+        torch.distributed._reduce_scatter_base = mock__reduce_scatter_base
+        torch.distributed.all_gather = mock_all_gather
+        torch.distributed.send = mock_send
+        torch.distributed.recv = mock_recv
+
+    def recover(self):
+        '''
+        recover the original function
+        '''
+        torch.distributed.all_reduce = origin_all_reduce 
+        torch.distributed.broadcast = origin_broadcast 
+        torch.distributed.barrier = origin_barrier 
+        torch.distributed._all_gather_base = origin__all_gather_base
+        torch.distributed._reduce_scatter_base = origin__reduce_scatter_base
+        torch.distributed.all_gather = origin_all_gather
+        torch.distributed.send = origin_send
+        torch.distributed.recv = origin_recv
