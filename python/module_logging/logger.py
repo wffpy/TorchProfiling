@@ -5,7 +5,7 @@ from torch.utils._python_dispatch import TorchDispatchMode
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
 from . import config
-from .utils import monkey_patch 
+from .utils import DistOpMonkeyPatch 
 
 MODULE_COUNTER = 0
 print_rank = int(os.environ.get("PRINT_RANK", 0))
@@ -42,8 +42,15 @@ class PerformanceLogger(TorchDispatchMode):
             Hook.install_hook()
 
         # monkey patch for distributed op  
-        monkey_patch()
+        self.monkey_patch = DistOpMonkeyPatch()
 
+    def __enter__(self):
+        super().__enter__()
+        self.monkey_patch.replace()
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.monkey_patch.recover()
+        super().__exit__()
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
