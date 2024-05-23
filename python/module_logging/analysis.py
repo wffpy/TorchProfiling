@@ -463,6 +463,7 @@ class AtenOpAnalyzer(Analyzer):
         """
         # _list = []
         # final_list = self.get_op_list()
+        final_list = []
         for elem in self.op_or_module:
             if isinstance(elem, LocalModule):
                 for local_elem in elem.dfs_traverse():
