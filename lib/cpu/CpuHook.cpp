@@ -151,15 +151,15 @@ int CpuHookWrapper::local_fprintf(void* stream, const char* format, ...) {
         int time = va_arg(args, int);
         timer::record_time_pair(time, func_name, "kernel", "good");
 
+    } 
+
+    if (wrapper_instance->origin_fprintf_ != nullptr) {
+        va_list args;
+        va_start(args, format);
+        wrapper_instance->origin_fprintf_(stream, format, args);
+        va_end(args);
     } else {
-        if (wrapper_instance->origin_fprintf_ != nullptr) {
-            va_list args;
-            va_start(args, format);
-            wrapper_instance->origin_fprintf_(stream, format, args);
-            va_end(args);
-        } else {
-            ELOG() << "origin local fprintf is nullptr";
-        }
+        ELOG() << "origin local fprintf is nullptr";
     }
     return 0;
 }
