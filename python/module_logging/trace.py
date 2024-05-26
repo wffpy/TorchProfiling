@@ -12,7 +12,7 @@ class Tracer(TorchDispatchMode):
     insert delimiters before and and after op execution
     """
 
-    def __init__(self, model=None, path=None, profling_bw=False) -> None:
+    def __init__(self, model=None, path=None, profiling_bw=False) -> None:
         '''
         model: nn.Module or nn.Module list to be traced
         path: path to save profiling data
@@ -24,7 +24,7 @@ class Tracer(TorchDispatchMode):
                      You can fix this by cloning the output of the custom Function."
         '''
         super().__init__()
-        self.profiling_backward = profling_bw
+        self.profiling_backward = profiling_bw
         # enable timer recording
         Hook.enable_profiling()
 

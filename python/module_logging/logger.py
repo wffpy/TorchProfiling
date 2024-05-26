@@ -22,8 +22,9 @@ class PerformanceLogger(TorchDispatchMode):
     insert delimiters before and and after op execution
     """
 
-    def __init__(self, model=None) -> None:
+    def __init__(self, model=None, profiling_bw=True) -> None:
         super().__init__()
+        self.profiling_bw = profiling_bw
         # traverse modules and register forward and backward hooks for each
         if model:
             if isinstance(model, list):
@@ -106,8 +107,9 @@ class PerformanceLogger(TorchDispatchMode):
         module.register_forward_pre_hook(self.pre_forward_hook_wrapper(name))
         module.register_forward_hook(self.post_forward_hook_wrapper(name))
 
-        module.register_full_backward_pre_hook(self.pre_backward_hook_wrapper(name))
-        module.register_full_backward_hook(self.post_backward_hook_wrapper(name))
+        if self.profiling_bw:
+            module.register_full_backward_pre_hook(self.pre_backward_hook_wrapper(name))
+            module.register_full_backward_hook(self.post_backward_hook_wrapper(name))
 
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:
