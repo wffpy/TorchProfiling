@@ -51,7 +51,7 @@ class PerformanceLogger(TorchDispatchMode):
     
     def __exit__(self, exc_type, exc_value, traceback):
         self.monkey_patch.recover()
-        super().__exit__()
+        super().__exit__(exc_type, exc_value, traceback)
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
