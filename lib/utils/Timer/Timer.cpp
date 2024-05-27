@@ -41,6 +41,7 @@ public:
     bool is_emtpy_brackets();
     void acquire_lock();
     void release_lock();
+    void clear_file();
 private:
     std::string fp;
     int fd;
@@ -127,6 +128,13 @@ void AtomicFile::release_lock() {
     flock(fd, LOCK_UN);
 }
 
+void AtomicFile::clear_file() {
+    if (ftruncate(fd, 0) == -1) {
+        close(fd);
+        ELOG() << "ftruncate file failed" << fp;
+    }
+}
+
 int64_t get_rank() {
     const char *rank_str= std::getenv("RANK");
     if (rank_str == nullptr) {
@@ -205,7 +213,7 @@ class Timer {
     bool flag = false;
     int64_t rank;
     AtomicFile file;
-    std::once_flag flag;
+    std::once_flag onceFlag;
 };
 
 bool Timer::enable = false;
@@ -225,7 +233,7 @@ void Timer::enable_timer() { enable = true; }
 
 void Timer::set_file_path(const std::string& path) {
     file = AtomicFile(path);
-    std::call_once(flag, [&](){
+    std::call_once(onceFlag, [&](){
         write_brackets();
     });
 }
@@ -297,6 +305,7 @@ int64_t Timer::get_duration() {
 void Timer::write_brackets() {
     if (Timer::enable) {
         lock::do_func_in_one_process([&]() {
+            file.clear_file();
             std::string brackets = "[\n]";
             auto len = file.write_non_lock(brackets.c_str());
             if (len < 0) {
