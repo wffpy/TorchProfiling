@@ -116,17 +116,31 @@ example:
 
 ```
 import module_logging as ml
-with ml.trace.Tracer(model=m, path="/tmp/profiling.log"):
+with ml.trace.Tracer(model=m, path="/tmp/profiling.log", print_module_info=False, ranks=[0, 1, 2]):
     m()
 ```
 - model: optional, set the nn.Module to profiling, [nn.Module]  or nn.Module
 - path: optional a file path to save the profiling result
+- print_module_info: optional, if True, will record the profiling info and write to /tmp/logs/
+- ranks: the ranks to trace and profiling. Default is None, means all ranks.
 
 #### Step 2:
 open the json file with:
 chrome://tracing/
 
 ![image](https://github.com/wffpy/TorchProfiling/blob/main/IMG/trace.png)
+
+#### Step 3: 
+```
+# print summary table
+python -m module_logging --path 7.log --summary
+
+# print the detail table
+python -m module_logging --path 7.log --detail
+
+# print all 3 kinds table
+python -m module_logging --path 7.log --all
+```
 
 
 ### C Function Counter
