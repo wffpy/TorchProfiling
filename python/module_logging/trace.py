@@ -12,7 +12,7 @@ class Tracer(TorchDispatchMode):
     insert delimiters before and and after op execution
     """
 
-    def __init__(self, model=None, path=None, profiling_bw=False) -> None:
+    def __init__(self, model=None, path=None, profiling_bw=False, print_module_info=True) -> None:
         '''
         model: nn.Module or nn.Module list to be traced
         path: path to save profiling data
@@ -22,9 +22,11 @@ class Tracer(TorchDispatchMode):
                      This view was created inside a custom Function (or because an input was returned as-is) 
                      and the autograd logic to handle view+inplace would override the custom backward associated with the custom Function, leading to incorrect gradients. This behavior is forbidden. 
                      You can fix this by cloning the output of the custom Function."
+        print_module_info: whether to print module info: e.g. BEGIN FORWARD: {}_froward, END FORWARD: {}_froward, BEGIN BACKWARD: {}_backward, END BACKWARD: {}_backward
         '''
         super().__init__()
         self.profiling_backward = profiling_bw
+        self.print_module_info = print_module_info
         # enable timer recording
         Hook.enable_profiling()
 
@@ -78,6 +80,8 @@ class Tracer(TorchDispatchMode):
     def pre_forward_hook_wrapper(self, name, level):
         def pre_forward_hook(module, input):
             level_name = "Module L{}".format(level)
+            if self.print_module_info:
+                print("[BEGIN FORWARD]: {}".format(name), flush=True)
             Hook.record_time("B", str(name), level_name)
 
         return pre_forward_hook
@@ -85,6 +89,8 @@ class Tracer(TorchDispatchMode):
     def post_forward_hook_wrapper(self, name, level):
         def post_forward_hook(module, input, output):
             level_name = "Module L{}".format(level)
+            if self.print_module_info:
+                print("[END FORWARD]: {}".format(name), flush=True)
             Hook.record_time("E", str(name), level_name)
 
         return post_forward_hook
@@ -92,6 +98,8 @@ class Tracer(TorchDispatchMode):
     def pre_backward_hook_wrapper(self, name, level):
         def pre_backward_hook(module, input):
             level_name = "Module L{}".format(level)
+            if self.print_module_info:
+                print("[BEGIN BACKWARD]: {}_backward".format(name), flush=True)
             Hook.record_time("B", str(name), level_name)
 
         return pre_backward_hook
@@ -99,6 +107,8 @@ class Tracer(TorchDispatchMode):
     def post_backward_hook_wrapper(self, name, level):
         def post_backward_hook(module, input, output):
             level_name = "Module L{}".format(level)
+            if self.print_module_info:
+                print("[END BACKWARD]: {}_backward".format(name), flush=True)
             Hook.record_time("E", str(name), level_name)
 
         return post_backward_hook
