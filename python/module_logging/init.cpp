@@ -51,6 +51,7 @@ void init_hook(pybind11::module& m) {
     m.def("write_to_file", []() {
         recorder::write_to_file();
     });
+
     m.def("enable_recorder", []() {
         recorder::enable_recorder();
     });
