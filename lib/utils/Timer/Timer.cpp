@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <sys/file.h>
 #include <string.h>
+#include <sys/stat.h> 
 
 using namespace std::chrono;
 
@@ -38,6 +39,8 @@ public:
     int64_t write_with_lock(const char* content, int64_t offset = 0);
     int64_t write_non_lock(const char* content);
     bool is_emtpy_brackets();
+    void acquire_lock();
+    void release_lock();
 private:
     std::string fp;
     int fd;
@@ -49,6 +52,17 @@ AtomicFile::AtomicFile(const std::string& file_path) : fp(file_path) {
     if (fd < 0) {
         ELOG() << "open file failed" << file_path;
     }
+
+    // struct stat fileStat;
+    // if (fstat(fd, &fileStat) == -1) {
+    //     close(fd);
+    //     ELOG() << "fstat file failed" << file_path;
+    // } 
+
+    // if(ftruncate(fd, 0) == -1) {
+    //     close(fd);
+    //     ELOG() << "ftruncate file failed" << file_path;
+    // }
 }
 
 AtomicFile::AtomicFile(const AtomicFile& file) {
@@ -74,10 +88,10 @@ AtomicFile::~AtomicFile() {
 
 int64_t AtomicFile::write_with_lock(const char* content, int64_t offset) {
     CHECK(fd > -1, "not implemented AtomiceFile object with fd: < 0");
-    flock(fd, LOCK_EX);
+    // flock(fd, LOCK_EX);
     lseek(fd, offset, SEEK_END);
     int64_t len = write(fd, content, strlen(content));
-    flock(fd, LOCK_UN);
+    // flock(fd, LOCK_UN);
     return len;
 }
 
@@ -101,6 +115,16 @@ bool AtomicFile::is_emtpy_brackets() {
         return false;
     }
     return true;
+}
+
+void AtomicFile::acquire_lock() {
+    CHECK(fd > -1, "not implemented AtomiceFile object with fd: < 0");
+    flock(fd, LOCK_EX);
+}
+
+void AtomicFile::release_lock() {
+    CHECK(fd > -1, "not implemented AtomiceFile object with fd: < 0");
+    flock(fd, LOCK_UN);
 }
 
 int64_t get_rank() {
@@ -287,6 +311,7 @@ Timer::~Timer() {
     }
     int64_t time_num = times.size();
     for (int64_t index = 0; index < time_num; index++) {
+        file.acquire_lock();
         Json json;
         std::string j_str = "";
         if (index != 0) {
@@ -306,6 +331,7 @@ Timer::~Timer() {
         j_str += json.to_string();
         j_str += "]";
         file.write_with_lock(j_str.c_str(), -1);
+        file.release_lock();
     }
 }
 

@@ -825,6 +825,12 @@ void install_local_hook(void *hooked_func, void *payload_func,
 void LocalHookRegistrar::add(LocalHookInfo info) { hooks.emplace_back(info); }
 
 void LocalHookRegistrar::install() {
+    static int64_t counter = 0;
+    if (counter > 0) {
+        return;
+    }
+    // the following code just execute once
+    counter += 1;
     auto lib_vec = cfunc_hook::get_libs();
     for (auto &lib_name : lib_vec) {
         DLOG() << "lib name: " << lib_name;

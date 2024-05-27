@@ -90,6 +90,10 @@ PltInfoVec collect_plt() {
 
 void install_hook() {
     static HookRegistrar *reg = HookRegistrar::instance();
+    static int64_t counter = 0;
+    if (counter > 0) return;
+    // the following code just execute once
+    counter += 1;
     LOG() << "hook num: " << reg->get_hook_num();
     auto plt_info_vec = collect_plt();
     for (auto &plt_info : plt_info_vec) {
