@@ -205,6 +205,7 @@ class Timer {
     bool flag = false;
     int64_t rank;
     AtomicFile file;
+    std::once_flag flag;
 };
 
 bool Timer::enable = false;
@@ -224,7 +225,9 @@ void Timer::enable_timer() { enable = true; }
 
 void Timer::set_file_path(const std::string& path) {
     file = AtomicFile(path);
-    write_brackets();
+    std::call_once(flag, [&](){
+        write_brackets();
+    });
 }
 
 void Timer::record_time(std::string ph, std::string name, std::string tid, std::string cname) {
