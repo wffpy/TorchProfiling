@@ -5,6 +5,7 @@
 #include "hook/LocalHook/LocalHook.h"
 #include "utils/Timer/Timer.h"
 #include "utils/Lock/FileLock.h"
+#include "utils/Recorder/Recorder.h"
 #include <iostream>
 
 namespace py = pybind11;
@@ -33,10 +34,27 @@ void init_hook(pybind11::module& m) {
         timer::record_time(ph, name, tid);
     });
 
-    m.def("set_record_path", [](char* path) {
+    m.def("set_timer_record_path", [](char* path) {
         std::string path_str(path);
         timer::set_record_path(path_str);
     });
+
+    m.def("set_log_record_path", [](char* path) {
+        std::string path_str(path);
+        recorder::set_record_file(path_str);
+    });
+
+    m.def("record_log", [](char* str) {
+        recorder::record(str);
+    });
+
+    m.def("write_to_file", []() {
+        recorder::write_to_file();
+    });
+    m.def("enable_recorder", []() {
+        recorder::enable_recorder();
+    });
+
 }
 
 PYBIND11_MODULE(Hook, m) {

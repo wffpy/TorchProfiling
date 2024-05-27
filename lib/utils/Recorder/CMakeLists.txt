@@ -1,0 +1,1 @@
+add_library(Recorder STATIC Recorder.cpp)
