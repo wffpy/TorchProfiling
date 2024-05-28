@@ -56,6 +56,10 @@ void init_hook(pybind11::module& m) {
         recorder::enable_recorder();
     });
 
+    m.def("close_recorder", []() {
+        recorder::close_recorder();
+    });
+
 }
 
 PYBIND11_MODULE(Hook, m) {

@@ -240,7 +240,7 @@ void Timer::set_file_path(const std::string& path) {
 
 void Timer::record_time(std::string ph, std::string name, std::string tid, std::string cname) {
     high_resolution_clock::time_point time_point = std::chrono::high_resolution_clock::now();
-    std::unique_lock<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx);
     times.push_back(std::move(time_point));
     names.push_back(name);
     tids.push_back(tid);
@@ -252,7 +252,7 @@ void Timer::record_time_pair(int64_t ns, std::string name, std::string tid, std:
     high_resolution_clock::time_point time_point = std::chrono::high_resolution_clock::now();
     std::chrono::nanoseconds dur(ns);
     auto begin = time_point - dur;
-    std::unique_lock<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx);
     times.push_back(std::move(begin));
     names.push_back(name);
     tids.push_back(tid);
@@ -284,7 +284,7 @@ void Timer::set_size(int64_t size) {
 void Timer::set_flag() { flag = true; }
 
 void Timer::record_duration() {
-    std::unique_lock<std::mutex> lock(mtx);
+    std::lock_guard<std::mutex> lock(mtx);
     flag = true;
     pre_time_point = sec_time_point;
     sec_time_point = std::chrono::high_resolution_clock::now();

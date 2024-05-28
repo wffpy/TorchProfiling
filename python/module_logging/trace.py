@@ -33,13 +33,17 @@ class Tracer(TorchDispatchMode):
         if self.ranks and rank and int(rank) not in self.ranks:
             return
 
-        # enable timer recording
-        Hook.enable_profiling()
-
-        Hook.enable_recorder()
-
         # install hooks for some runtime api / fprintf to record time
         Hook.install_hook()
+
+        # enable recorder to record the profiling logs and writo file
+        if self.print_module_info:
+            Hook.enable_recorder()
+            log_path = "/tmp/logs/{}.log".format(rank)
+            Hook.set_log_record_path(log_path) 
+
+        # enable timer recording
+        Hook.enable_profiling()
 
         # set path to record profiling data
         if path is None:
@@ -47,9 +51,6 @@ class Tracer(TorchDispatchMode):
         else:
             Hook.set_timer_record_path(path)
         
-        log_path = "/tmp/logs/{}.log".format(rank)
-        Hook.set_log_record_path(log_path) 
-
         if model is None:
             return
         else:
@@ -66,6 +67,7 @@ class Tracer(TorchDispatchMode):
     def __exit__(self, exc_type, exc_value, traceback):
         super().__exit__(exc_type, exc_value, traceback)
         Hook.write_to_file()
+        Hook.close_recorder()
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
@@ -98,7 +100,6 @@ class Tracer(TorchDispatchMode):
             if self.print_module_info:
                 log_str = "[BEGIN FORWARD]: {}".format(name)
                 Hook.record_log(log_str)
-                # print("[BEGIN FORWARD]: {}".format(name), flush=True)
             Hook.record_time("B", str(name), level_name)
 
         return pre_forward_hook
@@ -107,7 +108,6 @@ class Tracer(TorchDispatchMode):
         def post_forward_hook(module, input, output):
             level_name = "Module L{}".format(level)
             if self.print_module_info:
-                # print("[END FORWARD]: {}".format(name), flush=True)
                 log_str = "[END FORWARD]: {}".format(name)
                 Hook.record_log(log_str)
             Hook.record_time("E", str(name), level_name)
@@ -118,7 +118,6 @@ class Tracer(TorchDispatchMode):
         def pre_backward_hook(module, input):
             level_name = "Module L{}".format(level)
             if self.print_module_info:
-                # print("[BEGIN BACKWARD]: {}_backward".format(name), flush=True)
                 log_str = "[BEGIN BACKWARD]: {}_backward".format(name)
                 Hook.record_log(log_str)
             Hook.record_time("B", str(name), level_name)
@@ -129,7 +128,6 @@ class Tracer(TorchDispatchMode):
         def post_backward_hook(module, input, output):
             level_name = "Module L{}".format(level)
             if self.print_module_info:
-                # print("[END BACKWARD]: {}_backward".format(name), flush=True)
                 log_str = "[END BACKWARD]: {}_backward".format(name)
                 Hook.record_log(log_str)
             Hook.record_time("E", str(name), level_name)
@@ -149,12 +147,14 @@ class Tracer(TorchDispatchMode):
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
-        Hook.record_log("[START_SYMBOL]: {}".format(str(op)),)
+        if self.print_module_info:
+            Hook.record_log("[START_SYMBOL]: {}".format(str(op)))
         Hook.record_time("B", str(op), "aten op")
 
         # call op
         output = op(*args, **kwargs)
 
         Hook.record_time("E", str(op), "aten op")
-        Hook.record_log("[END_SYMBOL]: {}".format(str(op)))
+        if self.print_module_info:
+            Hook.record_log("[END_SYMBOL]: {}".format(str(op)))
         return output
