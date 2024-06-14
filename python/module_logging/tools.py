@@ -113,7 +113,7 @@ def parse_log():
             if args.summary:
                 s_table = analyzer.gen_summary_table()
                 write_table(s_table, "summary", args.csv)
-                write_table(s_table, "summary", args.csv)
+                # write_table(s_table, "summary", args.csv)
             if args.detail:
                 d_table = analyzer.gen_detail_table()
                 write_table(d_table, "detail", args.csv)
