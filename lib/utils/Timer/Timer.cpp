@@ -185,7 +185,8 @@ class Timer {
     Timer();
     ~Timer();
     Timer(int64_t size);
-    void record_time(std::string ph = "B", std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
+    high_resolution_clock::time_point record_time(std::string ph = "B", std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
+    void record_flow_event(high_resolution_clock::time_point time, std::string ph = "s", std::string name = "connect", std::string tid = "runtime api", std::string cname = "yellow");
     void record_time_pair(int64_t ns, std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
     int64_t get_time();
     void set_size(int64_t size);
@@ -238,10 +239,20 @@ void Timer::set_file_path(const std::string& path) {
     });
 }
 
-void Timer::record_time(std::string ph, std::string name, std::string tid, std::string cname) {
+high_resolution_clock::time_point Timer::record_time(std::string ph, std::string name, std::string tid, std::string cname) {
     high_resolution_clock::time_point time_point = std::chrono::high_resolution_clock::now();
     std::lock_guard<std::mutex> lock(mtx);
     times.push_back(std::move(time_point));
+    names.push_back(name);
+    tids.push_back(tid);
+    phs.push_back(ph);
+    cnames.push_back(cname);
+    return time_point;
+}
+
+void Timer::record_flow_event(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname) {
+    std::lock_guard<std::mutex> lock(mtx);
+    times.push_back(std::move(time));
     names.push_back(name);
     tids.push_back(tid);
     phs.push_back(ph);
@@ -362,10 +373,19 @@ int64_t get_time() {
     return 0;
 }
 
-void record_time(std::string ph , std::string name , std::string tid, std::string cname) {
+high_resolution_clock::time_point record_time(std::string ph , std::string name , std::string tid, std::string cname) {
+    high_resolution_clock::time_point time;
     if (Timer::enable) {
         DLOG() <<  "recored_time ph:" << ph << ", name: " << name << ", tid: " << tid << ", cname: " << cname;
-        TimerSingletone::instance().get_elem()->record_time(ph, name, tid, cname); 
+        time = TimerSingletone::instance().get_elem()->record_time(ph, name, tid, cname); 
+    }
+    return time;
+}
+
+void record_flow_event(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname) {
+    if (Timer::enable) {
+        DLOG() <<  "recored_flow_event ph:" << ph << ", name: " << name << ", tid: " << tid << ", cname: " << cname;
+        TimerSingletone::instance().get_elem()->record_flow_event(time, ph, name, tid, cname); 
     }
 }
 

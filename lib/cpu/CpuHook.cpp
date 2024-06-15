@@ -35,6 +35,8 @@ class CpuHookWrapper {
     static void *local_dlopen(const char *filename, int flag);
     static int local_print(const char *format, ...);
     static int local_fprintf(void* stream, const char *format, ...);
+    static int local_event_record(void *event, void *stream);
+    static int local_stream_wait_event(void *stream, void *event);
 
     int (*origin_launch_async_)(void *) = nullptr;
     int (*origin_launch_config_)(int, int, void *) = nullptr;
@@ -44,7 +46,13 @@ class CpuHookWrapper {
     void *(*origin_dlopen_)(const char *, int) = nullptr;
     int (*origin_print_)(const char*, ...)  = nullptr;
     int (*origin_fprintf_)(void* , const char*, ...)  = nullptr;
+    int (*origin_event_record_)(void *, void *) = nullptr;
+    int (*origin_stream_wait_event_)(void *, void*) = nullptr;
+
+    static std::string runtime_api_name;
 };
+
+std::string CpuHookWrapper::runtime_api_name = "";
 
 typedef utils::Singleton<CpuHookWrapper> SingletonCpuHookWrapper;
 
@@ -54,9 +62,9 @@ int CpuHookWrapper::local_launch_async(void *func) {
     trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_launch_async_ != nullptr) {
-        timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/"runtime api");
+        timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/CpuHookWrapper::runtime_api_name);
         int s = wrapper_instance->origin_launch_async_(func);
-        timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/"runtime api");
+        timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/CpuHookWrapper::runtime_api_name);
         return s;
     }
     return 0;
@@ -66,9 +74,14 @@ int CpuHookWrapper::local_launch_config(int nclusters, int ncores,
                                         void *stream) {
     trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    uintptr_t stream_index = reinterpret_cast<uintptr_t>(stream);
+    std::string runtime_api = "stream: ";
+    CpuHookWrapper::runtime_api_name = runtime_api + std::to_string(stream_index);
     if (wrapper_instance->origin_launch_config_ != nullptr) {
-        return wrapper_instance->origin_launch_config_(nclusters, ncores,
-                                                       stream);
+        timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/CpuHookWrapper::runtime_api_name);
+        int ret = wrapper_instance->origin_launch_config_(nclusters, ncores, stream);
+        timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/CpuHookWrapper::runtime_api_name);
+        return ret;
     }
     return 0;
 }
@@ -83,13 +96,45 @@ int CpuHookWrapper::local_launch_arg_set(const void *arg, size_t size,
     return 0;
 }
 
+int CpuHookWrapper::local_event_record(void *event, void *stream) {
+    trace::Tracer tracer(__FUNCTION__);
+    auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    uintptr_t stream_index = reinterpret_cast<uintptr_t>(stream);
+    std::string runtime_api = "stream: ";
+    std::string runtime_api_line = runtime_api + std::to_string(stream_index);
+    if (wrapper_instance->origin_event_record_ != nullptr) {
+        timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        int ret = wrapper_instance->origin_event_record_(event, stream);
+        auto time = timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        timer::record_flow_event(/*time=*/time, /*ph=*/"s", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        return ret;
+    }
+    return 0;
+}
+
+int CpuHookWrapper::local_stream_wait_event(void *stream, void *event) {
+    trace::Tracer tracer(__FUNCTION__);
+    auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    uintptr_t stream_index = reinterpret_cast<uintptr_t>(stream);
+    std::string runtime_api = "stream: ";
+    std::string runtime_api_line = runtime_api + std::to_string(stream_index);
+    if (wrapper_instance->origin_stream_wait_event_ != nullptr) {
+        auto time = timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        int ret = wrapper_instance->origin_stream_wait_event_(stream, event);
+        timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        timer::record_flow_event(/*time=*/time, /*ph=*/"f", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        return ret;
+    }
+    return 0;
+}
+
 int CpuHookWrapper::local_xpu_wait(void *stream) {
     trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     if (origin_xpu_wait_ != nullptr) {
-        timer::record_time(/*ph=*/"B", /*name=*/"local_xpu_wait", /*runtime api=*/"runtime api", /*cname=*/"good");
+        timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/CpuHookWrapper::runtime_api_name, /*cname=*/"good");
         int status = origin_xpu_wait_(stream);
-        timer::record_time(/*ph=*/"E", /*name=*/"local_xpu_wait", /*runtime api=*/"runtime api", /*cname=*/"good");
+        timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/CpuHookWrapper::runtime_api_name, /*cname=*/"good");
         return status;
     } else {
         ELOG() << "origin xpu wait is null";
@@ -179,15 +224,23 @@ REGISTERHOOK(xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
              (void **)&SingletonCpuHookWrapper::instance()
                  .get_elem()
                  ->origin_launch_async_);
-// REGISTERHOOK(xpu_launch_config, (void *)CpuHookWrapper::local_launch_config,
-//              (void **)&SingletonCpuHookWrapper::instance()
-//                  .get_elem()
-//                  ->origin_launch_config_);
+REGISTERHOOK(xpu_launch_config, (void *)CpuHookWrapper::local_launch_config,
+             (void **)&SingletonCpuHookWrapper::instance()
+                 .get_elem()
+                 ->origin_launch_config_);
 // REGISTERHOOK(xpu_launch_argument_set,
 //              (void *)CpuHookWrapper::local_launch_arg_set,
 //              (void **)&SingletonCpuHookWrapper::instance()
 //                  .get_elem()
 //                  ->origin_launch_arg_set_);
+
+REGISTERHOOK(xpu_event_record, (void*)CpuHookWrapper::local_event_record,
+             (void **)&SingletonCpuHookWrapper::instance()
+                 .get_elem()->origin_event_record_);
+
+REGISTERHOOK(xpu_stream_event_wait, (void*)CpuHookWrapper::local_stream_wait_event,
+             (void **)&SingletonCpuHookWrapper::instance()
+                 .get_elem()->origin_stream_wait_event_);
 
 REGISTERHOOK(
     xpu_wait, (void *)CpuHookWrapper::local_xpu_wait, (void **)&origin_xpu_wait_);
