@@ -151,9 +151,10 @@ int CpuHookWrapper::local_fprintf(void* stream, const char* format, ...) {
         int cycles = va_arg(args, int);
         int time = va_arg(args, int);
         timer::record_time_pair(time, func_name, "kernel", "good");
-        std::string perf_str = "[XPURT_PROF]: ";
+        std::string perf_str = "[XPURT_PROF] ";
         perf_str += func_name;
-        perf_str = perf_str + std::to_string(time) + " ns";
+        perf_str += ": ";
+        perf_str += std::to_string(time) + " ns";
         recorder::record(perf_str);
     }  else {
         if (wrapper_instance->origin_fprintf_ != nullptr) {
