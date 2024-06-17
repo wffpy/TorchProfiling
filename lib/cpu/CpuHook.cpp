@@ -37,6 +37,8 @@ class CpuHookWrapper {
     static int local_fprintf(void* stream, const char *format, ...);
     static int local_event_record(void *event, void *stream);
     static int local_stream_wait_event(void *stream, void *event);
+    static int local_cudaStreamWaitEvent(void*, void*, unsigned int);
+    static int local_cudaStreamRecord(void*, void*);
 
     int (*origin_launch_async_)(void *) = nullptr;
     int (*origin_launch_config_)(int, int, void *) = nullptr;
@@ -48,6 +50,8 @@ class CpuHookWrapper {
     int (*origin_fprintf_)(void* , const char*, ...)  = nullptr;
     int (*origin_event_record_)(void *, void *) = nullptr;
     int (*origin_stream_wait_event_)(void *, void*) = nullptr;
+    int (*origin_cudaStreamWaitEvent_)(void*, void*, unsigned int) = nullptr;
+    int (*origin_cudaStreamRecord_)(void*, void*) = nullptr;
 
     static std::string runtime_api_name;
 };
@@ -128,6 +132,40 @@ int CpuHookWrapper::local_stream_wait_event(void *stream, void *event) {
     return 0;
 }
 
+int CpuHookWrapper::local_cudaStreamRecord(void* event, void* stream) {
+    trace::Tracer tracer(__FUNCTION__);
+    auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    uintptr_t stream_index = reinterpret_cast<uintptr_t>(stream);
+    std::string runtime_api = "stream: ";
+    std::string runtime_api_line = runtime_api + std::to_string(stream_index);
+    if (wrapper_instance->origin_cudaStreamRecord_ != nullptr) {
+        // LOG() << "cudaStreamRecord";
+        timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        int ret = wrapper_instance->origin_cudaStreamRecord_(event, stream);
+        auto time = timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        timer::record_flow_event(/*time=*/time, /*ph=*/"s", /*name=*/"connect", /*runtime api=*/runtime_api_line);
+        return ret;
+    }
+    
+    return 0;
+}
+
+int CpuHookWrapper::local_cudaStreamWaitEvent(void *stream, void *event, unsigned int flags) {
+    trace::Tracer tracer(__FUNCTION__);
+    auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    uintptr_t stream_index = reinterpret_cast<uintptr_t>(stream);
+    std::string runtime_api = "stream: ";
+    std::string runtime_api_line = runtime_api + std::to_string(stream_index);
+    if (wrapper_instance->origin_cudaStreamWaitEvent_ != nullptr) {
+        // LOG() << "cudaStreamWaitEvent";
+        auto time = timer::record_time(/*ph=*/"B", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        int ret = wrapper_instance->origin_cudaStreamWaitEvent_(stream, event, flags);
+        timer::record_time(/*ph=*/"E", /*name=*/__FUNCTION__, /*runtime api=*/runtime_api_line);
+        timer::record_flow_event_end(/*time=*/time, /*ph=*/"f", /*name=*/"connect", /*runtime api=*/runtime_api_line);
+        return ret;
+    }
+    return 0;
+}
 int CpuHookWrapper::local_xpu_wait(void *stream) {
     trace::Tracer tracer(__FUNCTION__);
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
@@ -241,6 +279,14 @@ REGISTERHOOK(xpu_event_record, (void*)CpuHookWrapper::local_event_record,
 REGISTERHOOK(xpu_stream_event_wait, (void*)CpuHookWrapper::local_stream_wait_event,
              (void **)&SingletonCpuHookWrapper::instance()
                  .get_elem()->origin_stream_wait_event_);
+
+REGISTERHOOK(cudaEventRecord, (void*)CpuHookWrapper::local_cudaStreamRecord,
+             (void **)&SingletonCpuHookWrapper::instance()
+                 .get_elem()->origin_cudaStreamRecord_);
+
+REGISTERHOOK(cudaStreamWaitEvent, (void*)CpuHookWrapper::local_cudaStreamWaitEvent,
+             (void **)&SingletonCpuHookWrapper::instance()
+                 .get_elem()->origin_cudaStreamWaitEvent_);
 
 REGISTERHOOK(
     xpu_wait, (void *)CpuHookWrapper::local_xpu_wait, (void **)&origin_xpu_wait_);

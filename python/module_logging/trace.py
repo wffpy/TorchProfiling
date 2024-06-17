@@ -199,6 +199,7 @@ class Tracer(TorchDispatchMode):
         super().__init__()
         self.profiling_backward = profiling_bw
         self.print_module_info = print_module_info
+        self.monkey_patch = DistOpRecordMonkeyPatch()
         self.ranks = ranks
         if self.ranks and rank and int(rank) not in self.ranks:
             return
@@ -233,7 +234,6 @@ class Tracer(TorchDispatchMode):
                 m_tuple = self.get_named_modules(model)
                 for name, m, l in m_tuple:
                     self._register_hook(name, m, l)
-        self.monkey_patch = DistOpRecordMonkeyPatch()
 
     def __enter__(self):
         super().__enter__()

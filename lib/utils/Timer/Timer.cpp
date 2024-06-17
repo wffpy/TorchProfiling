@@ -180,13 +180,15 @@ void Json::add(std::string key, std::string value) {
     key_to_value.emplace_back(key, value);
 }
 
+enum class EVENTTYPE { NONE, FLOW_S, FLOW_E};
 class Timer {
   public:
     Timer();
     ~Timer();
     Timer(int64_t size);
     high_resolution_clock::time_point record_time(std::string ph = "B", std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
-    void record_flow_event(high_resolution_clock::time_point time, std::string ph = "s", std::string name = "connect", std::string tid = "runtime api", std::string cname = "yellow");
+    void record_flow_event(high_resolution_clock::time_point time, std::string ph = "s", std::string name = "connect", std::string tid = "runtime api", std::string cname = "yellow", int64_t id = 0);
+    void record_flow_event_end(high_resolution_clock::time_point time, std::string ph = "s", std::string name = "connect", std::string tid = "runtime api", std::string cname = "yellow", int64_t id = 0);
     void record_time_pair(int64_t ns, std::string name = "launch_async", std::string tid = "runtime api", std::string cname = "yellow");
     int64_t get_time();
     void set_size(int64_t size);
@@ -211,6 +213,8 @@ class Timer {
     std::vector<std::string> phs;
     std::vector<std::string> tids;
     std::vector<std::string> cnames;
+    std::vector<EVENTTYPE> types;
+    std::vector<int64_t> ids;
     bool flag = false;
     int64_t rank;
     AtomicFile file;
@@ -247,16 +251,31 @@ high_resolution_clock::time_point Timer::record_time(std::string ph, std::string
     tids.push_back(tid);
     phs.push_back(ph);
     cnames.push_back(cname);
+    types.push_back(EVENTTYPE::NONE);
+    ids.push_back(0);
     return time_point;
 }
 
-void Timer::record_flow_event(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname) {
+void Timer::record_flow_event(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname, int64_t id) {
     std::lock_guard<std::mutex> lock(mtx);
     times.push_back(std::move(time));
     names.push_back(name);
     tids.push_back(tid);
     phs.push_back(ph);
     cnames.push_back(cname);
+    types.push_back(EVENTTYPE::FLOW_S);
+    ids.push_back(id);
+}
+
+void Timer::record_flow_event_end(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname, int64_t id) {
+    std::lock_guard<std::mutex> lock(mtx);
+    times.push_back(std::move(time));
+    names.push_back(name);
+    tids.push_back(tid);
+    phs.push_back(ph);
+    cnames.push_back(cname);
+    types.push_back(EVENTTYPE::FLOW_E);
+    ids.push_back(id);
 }
 
 void Timer::record_time_pair(int64_t ns, std::string name, std::string tid, std::string cname) {
@@ -351,6 +370,12 @@ Timer::~Timer() {
                                times[index] - start)
                                .count();
         json.add("ts", std::to_string((double)duration / 1000));
+        if (types[index] == EVENTTYPE::FLOW_E) {
+            json.add("bp", "e");
+        }
+        if (types[index] == EVENTTYPE::FLOW_S || types[index] == EVENTTYPE::FLOW_E) {
+            json.add("id", std::to_string(ids[index]));
+        }
         j_str += json.to_string();
         j_str += "]";
         file.write_with_lock(j_str.c_str(), -1);
@@ -382,10 +407,17 @@ high_resolution_clock::time_point record_time(std::string ph , std::string name 
     return time;
 }
 
-void record_flow_event(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname) {
+void record_flow_event(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname, int64_t id) {
     if (Timer::enable) {
         DLOG() <<  "recored_flow_event ph:" << ph << ", name: " << name << ", tid: " << tid << ", cname: " << cname;
-        TimerSingletone::instance().get_elem()->record_flow_event(time, ph, name, tid, cname); 
+        TimerSingletone::instance().get_elem()->record_flow_event(time, ph, name, tid, cname, id); 
+    }
+}
+
+void record_flow_event_end(high_resolution_clock::time_point time, std::string ph, std::string name, std::string tid, std::string cname, int64_t id) {
+    if (Timer::enable) {
+        DLOG() <<  "recored_flow_event ph:" << ph << ", name: " << name << ", tid: " << tid << ", cname: " << cname;
+        TimerSingletone::instance().get_elem()->record_flow_event_end(time, ph, name, tid, cname, id); 
     }
 }
 
