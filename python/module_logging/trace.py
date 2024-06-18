@@ -179,6 +179,24 @@ class DistOpRecordMonkeyPatch(object):
         torch.distributed.send = origin_send
         torch.distributed.recv = origin_recv
 
+TENSOR_FUNCS_NO_DISPATCH = [
+    # Can't convert Stream argument to Python object
+    'record_stream'
+]
+
+class TorchFuncMockNoDispatch:
+    """
+    Wraps a method to call it without the custom
+    pytorch dispatcher
+    """
+    def __init__(self, pt_impl):
+        self.pt_impl = pt_impl
+    def __get__(self, obj, c):
+        return partial(self, obj)
+    def __call__(self, obj, *args, **kwargs):
+        with _pop_mode_temporarily():
+            return self.pt_impl(obj, *args, **kwargs)
+
 class Tracer(TorchDispatchMode):
     """
     insert delimiters before and and after op execution
@@ -236,11 +254,18 @@ class Tracer(TorchDispatchMode):
                     self._register_hook(name, m, l)
 
     def __enter__(self):
+        self._pt_impls = {}
+        for k in self.TENSOR_FUNCS_NO_DISPATCH:
+            impl = getattr(torch.Tensor, k)
+            self._pt_impls[k] = impl
+            setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
         self.monkey_patch.replace()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.monkey_patch.recover()
+        for k in self.TENSOR_FUNCS_NO_DISPATCH:
+            setattr(torch.Tensor, k, self._pt_impls[k])
         super().__exit__(exc_type, exc_value, traceback)
         Hook.write_to_file()
         Hook.close_recorder()

@@ -1,11 +1,12 @@
 import os
 import torch
 import torch.distributed as dist
-from torch.utils._python_dispatch import TorchDispatchMode
+from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
 from . import config
 from .utils import DistOpMonkeyPatch 
+from functools import partial
 
 MODULE_COUNTER = 0
 print_rank = int(os.environ.get("PRINT_RANK", 0))
@@ -16,6 +17,23 @@ def get_module_index():
     MODULE_COUNTER += 1
     return MODULE_COUNTER
 
+TENSOR_FUNCS_NO_DISPATCH = [
+    # Can't convert Stream argument to Python object
+    'record_stream'
+]
+
+class TorchFuncMockNoDispatch:
+    """
+    Wraps a method to call it without the custom
+    pytorch dispatcher
+    """
+    def __init__(self, pt_impl):
+        self.pt_impl = pt_impl
+    def __get__(self, obj, c):
+        return partial(self, obj)
+    def __call__(self, obj, *args, **kwargs):
+        with _pop_mode_temporarily():
+            return self.pt_impl(obj, *args, **kwargs)
 
 class PerformanceLogger(TorchDispatchMode):
     """
@@ -46,11 +64,18 @@ class PerformanceLogger(TorchDispatchMode):
         self.monkey_patch = DistOpMonkeyPatch()
 
     def __enter__(self):
+        self._pt_impls = {}
+        for k in self.TENSOR_FUNCS_NO_DISPATCH:
+            impl = getattr(torch.Tensor, k)
+            self._pt_impls[k] = impl
+            setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
         self.monkey_patch.replace()
     
     def __exit__(self, exc_type, exc_value, traceback):
         self.monkey_patch.recover()
+        for k in self.TENSOR_FUNCS_NO_DISPATCH:
+            setattr(torch.Tensor, k, self._pt_impls[k])
         super().__exit__(exc_type, exc_value, traceback)
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
@@ -86,6 +111,9 @@ class PerformanceLogger(TorchDispatchMode):
         def post_forward_hook(module, input, output):
             torch.cuda.synchronize()
             print("[END FORWARD]: {}".format(name), flush=True)
+            # weights = module.state_dict()
+            # print("weights number: {}".format(len(weights)))
+            # print("weight keys: {}".format(weights.keys()))
 
         return post_forward_hook
 
@@ -100,6 +128,9 @@ class PerformanceLogger(TorchDispatchMode):
         def post_backward_hook(module, input, output):
             torch.cuda.synchronize()
             print("[END BACKWARD]: {}_backward".format(name), flush=True)
+            # weights = module.state_dict()
+            # print("weights number: {}".format(len(weights)))
+            # print("weight keys: {}".format(weights.keys()))
 
         return post_backward_hook
 
