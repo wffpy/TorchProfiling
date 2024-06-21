@@ -1,6 +1,7 @@
 import torch
-from torch.utils._python_dispatch import TorchDispatchMode
+from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
 from . import config
+from functools import partial
 import os
 rank = os.getenv("RANK", "0")
 
@@ -254,13 +255,13 @@ class Tracer(TorchDispatchMode):
                     self._register_hook(name, m, l)
 
     def __enter__(self):
+        self.monkey_patch.replace()
         self._pt_impls = {}
-        for k in self.TENSOR_FUNCS_NO_DISPATCH:
+        for k in TENSOR_FUNCS_NO_DISPATCH:
             impl = getattr(torch.Tensor, k)
             self._pt_impls[k] = impl
             setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
-        self.monkey_patch.replace()
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.monkey_patch.recover()

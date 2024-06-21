@@ -43,6 +43,8 @@ class PerformanceLogger(TorchDispatchMode):
     def __init__(self, model=None, profiling_bw=True) -> None:
         super().__init__()
         self.profiling_bw = profiling_bw
+        # monkey patch for distributed op  
+        self.monkey_patch = DistOpMonkeyPatch()
         # traverse modules and register forward and backward hooks for each
         if model:
             if isinstance(model, list):
@@ -60,17 +62,15 @@ class PerformanceLogger(TorchDispatchMode):
             from . import Hook
             Hook.install_hook()
 
-        # monkey patch for distributed op  
-        self.monkey_patch = DistOpMonkeyPatch()
 
     def __enter__(self):
+        self.monkey_patch.replace()
         self._pt_impls = {}
-        for k in self.TENSOR_FUNCS_NO_DISPATCH:
+        for k in TENSOR_FUNCS_NO_DISPATCH:
             impl = getattr(torch.Tensor, k)
             self._pt_impls[k] = impl
             setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
-        self.monkey_patch.replace()
     
     def __exit__(self, exc_type, exc_value, traceback):
         self.monkey_patch.recover()
