@@ -99,7 +99,7 @@ def cpp_extend_setup():
         package_dir={"": os.path.join(script_dir, "python")},
         package_data={"": ["*"]},
         install_requires=[
-            "torch",
+            "prettytable",
         ],
         entry_points={
             "console_scripts": ["module_logging = module_logging.__main__:main"]
