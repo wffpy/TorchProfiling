@@ -78,9 +78,9 @@ def regular_setup():
         packages=find_packages(where="python"),
         package_dir={"": os.path.join(script_dir, "python")},
         package_data={"": ["*"]},
-        install_requires=[
-            "torch",
-        ],
+        #install_requires=[
+        #    "torch",
+        #],
         entry_points={
             "console_scripts": ["module_logging = module_logging.__main__:main"]
         },
