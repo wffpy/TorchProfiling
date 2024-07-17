@@ -68,6 +68,7 @@ typedef utils::Singleton<GpuHookWrapper> SingletonGpuHookWrapper;
          ? ((buffer) + (align) - ((uintptr_t)(buffer) & ((align)-1)))          \
          : (buffer))
 
+// Has gpu device
 #ifdef CUDA_DEV
 static void print_activity(CUpti_Activity *record) {
     switch (record->kind) {
@@ -139,9 +140,54 @@ void init_trace() {
 void fini_trace() {
     // Force flush any remaining activity buffers before termination of the
     // application
-    CUPTI_CALL(cuptiActivityFlushAll(1));
+    // CUPTI_CALL(cuptiActivityFlushAll(1));
     cuptiFinalize();
 }
+
+namespace gpu_profiler {
+
+/**
+ * @brief 初始化 CUDA Profiler 追踪工具接口 (CUPTI) 活动
+ *
+ * 初始化 CUDA Profiler 追踪工具接口 (CUPTI) 以捕获 GPU 上的活动。
+ * 启用对并发内核活动的追踪，并注册缓冲区请求和完成回调。
+ *
+ * @note 对应的活动记录结构是 CUpti_ActivityKernel4。
+ */
+void cupti_activity_init() {
+    // A kernel executing on the GPU. The corresponding activity record
+    // structure is CUpti_ActivityKernel4.
+    CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL));
+    // CUPTI_CALL(cuptiActivityEnable(CUPTI_ACTIVITY_KIND_KERNEL));
+
+    // Register callbacks for buffer requests and for buffers completed by
+    // CUPTI.
+    CUPTI_CALL(
+        cuptiActivityRegisterCallbacks(buffer_requested, buffer_completed));
+}
+
+/**
+ * @brief 刷新 CUPTI 活动缓冲区
+ *
+ * 在应用程序终止之前，强制刷新任何剩余的活动缓冲区。
+ */
+void cupti_activity_flush() {
+    // Force flush any remaining activity buffers before termination of the
+    // application
+    CUPTI_CALL(cuptiActivityFlushAll(0));
+}
+
+
+/**
+ * @brief 终止 CUDA 性能分析工具（CUPTI）的活动
+ *
+ * 调用 CUDA 性能分析工具（CUPTI）的 cuptiFinalize 函数，以终止所有与 CUPTI 相关的活动。
+ * 这通常在程序结束时调用，以确保所有资源都被正确释放。
+ */
+void cupti_activity_finalize() {
+    cuptiFinalize();
+}
+}   // namespace gpu_profiler
 
 int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
                                              dim3 blockDim, void **args,
@@ -149,7 +195,6 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
                                              cudaStream_t stream) {
     trace::Tracer tracer(__FUNCTION__);
     cudaDeviceSynchronize();
-    init_trace();
     // call cudaLaunchKernel
     GpuHookWrapper *wrapper_instance =
         SingletonGpuHookWrapper::instance().get_elem();
@@ -160,7 +205,6 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
         ELOG() << "Error: cudaLaunchKernel is not found";
     }
     cudaDeviceSynchronize();
-    fini_trace();
 
     return 0;
 }
@@ -275,7 +319,6 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 void **kernelParams,
                                 void **extra) {
     cudaDeviceSynchronize();
-    init_trace();
     CUresult ret = Target_cuLaunchKernel(f, 
                                 gridDimX,
                                 gridDimY,
@@ -288,12 +331,21 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 kernelParams,
                                 extra);
     cudaDeviceSynchronize();
-    fini_trace();
     return ret;
 }
 
 // REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
-REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
+// REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
+#else
+// Non-Gpu device
+namespace gpu_profiler {
+void cupti_activity_init() {}
+
+void cupti_activity_flush() {}
+
+void cupti_activity_finalize() {}
+
+}   // namespace gpu_profiler
 
 #endif
 

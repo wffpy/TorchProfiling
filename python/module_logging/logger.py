@@ -8,6 +8,10 @@ from . import config
 from .utils import DistOpMonkeyPatch 
 from functools import partial
 
+cpp_extend = config.get_config("database", "cpp_extend")
+if cpp_extend == "True":
+    from . import Hook
+
 MODULE_COUNTER = 0
 print_rank = int(os.environ.get("PRINT_RANK", 0))
 
@@ -64,6 +68,8 @@ class PerformanceLogger(TorchDispatchMode):
 
 
     def __enter__(self):
+        if config.cpp_extend():
+            Hook.cuda_profiler_start()
         self.monkey_patch.replace()
         self._pt_impls = {}
         for k in TENSOR_FUNCS_NO_DISPATCH:
@@ -73,6 +79,8 @@ class PerformanceLogger(TorchDispatchMode):
         super().__enter__()
     
     def __exit__(self, exc_type, exc_value, traceback):
+        if config.cpp_extend():
+            Hook.cuda_profiler_end()
         self.monkey_patch.recover()
         for k in TENSOR_FUNCS_NO_DISPATCH:
             setattr(torch.Tensor, k, self._pt_impls[k])
@@ -149,10 +157,12 @@ class PerformanceLogger(TorchDispatchMode):
         print("[START_SYMBOL]: {}".format(str(op)), flush=True)
 
         # call op
-        # torch.cuda.synchronize()
+        torch.cuda.synchronize()
         output = op(*args, **kwargs)
-        # torch.cuda.synchronize()
+        torch.cuda.synchronize()
 
+        if config.cpp_extend():
+            Hook.cuda_profiler_flush()
         #  insert after-op delimiter
         print("[END_SYMBOL]: {}".format(str(op)), flush=True)
         return output

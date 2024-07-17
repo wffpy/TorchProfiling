@@ -6,20 +6,11 @@
 // #include <cuda_runtime.h>
 
 namespace gpu_profiler {
+void cupti_activity_init();
 
-// class GpuHookWrapper {
-// public:
-//     GpuHookWrapper() {}
-//     ~GpuHookWrapper() {}
+void cupti_activity_flush();
 
-//     static int local_cuda_launch(void* func);
-//     static int local_cuda_launch_kernel(const void* func, dim3 gridDim, dim3 blockDim, void** args, size_t sharedMem, cudaStream_t stream);
-
-//     int (*oriign_cuda_launch_)(void*) = nullptr;
-//     int (*oriign_cuda_launch_kernel_)(const void*, dim3, dim3, void**, size_t, cudaStream_t) = nullptr;
-// };
-
-// typedef utils::Singleton<GpuHookWrapper> SingletonGpuHookWrapper;
+void cupti_activity_finalize();
 
 void register_gpu_hook();
 

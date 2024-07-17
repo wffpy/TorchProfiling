@@ -60,6 +60,18 @@ void init_hook(pybind11::module& m) {
         recorder::close_recorder();
     });
 
+    m.def("cuda_profiler_start", []() {
+        gpu_profiler::cupti_activity_init();
+    });
+
+    m.def("cuda_profiler_flush", []() {
+        gpu_profiler::cupti_activity_flush();
+    });
+
+    m.def("cuda_profiler_end", []() {
+        gpu_profiler::cupti_activity_finalize();
+    });
+
 }
 
 PYBIND11_MODULE(Hook, m) {
