@@ -66,6 +66,17 @@ class PerformanceLogger(TorchDispatchMode):
             from . import Hook
             Hook.install_hook()
 
+    def config(self, model=None, profiling_bw=True):
+        if model:
+            if isinstance(model, list):
+                for module in model:
+                    m_tuple = self.get_named_modules(module)
+                    for name, m in m_tuple:
+                        self._register_hook(name, m)
+            elif isinstance(model, torch.nn.Module):
+                m_tuple = self.get_named_modules(model)
+                for name, m in m_tuple:
+                    self._register_hook(name, m)
 
     def __enter__(self):
         if config.cpp_extend():

@@ -7,6 +7,7 @@ from .analysis_xpu_log import parse_log as parse_xpu_log
 from .analysis import AtenOpAnalyzer, DistAnalyzer, gen_module_compare_tables, gen_module_compare_table_str
 import prettytable as pt
 from .cut_log import extract_section
+from .compare_persion import compare
 
 # import analysis_gpu_log
 # import analysis_xpu_log
@@ -72,6 +73,9 @@ def parse_args():
         type=str,
         default="iteration        3",
         help="path to log file",
+    )
+    arg_parser.add_argument(
+        "--percision", action="store_true", help="generate summary table"
     )
 
     return arg_parser.parse_args()
@@ -151,3 +155,6 @@ def parse_log():
             tables = gen_module_compare_tables(analyzer1, analyzer2)
             for table in tables:
                 print(table)
+    elif args.percision:
+        table = compare(args.lhs_path, args.rhs_path)
+        print(table)
