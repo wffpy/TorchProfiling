@@ -45,26 +45,24 @@ class PercisionDebugger:
                 return
 
             index =0
-            for t in input:
-                if not isinstance(t, torch.Tensor):
-                    continue
+            if isinstance(output, tuple):
+                for t in input:
+                    if not isinstance(t, torch.Tensor):
+                        continue
+                    input_name = "step_" + str(self.step) + "_" + module_name + "_forward_input_" + str(index)
+                    if input_name in self.saved:
+                        Logger.error("duplicate key: {}".format(input_name))
+                    Logger.info("save module input: {}".format(input_name))
+                    self.h5f.create_dataset(input_name, data=t.cpu().detach().numpy())
+                    self.saved.append(input_name)
+                    index += 1
+            elif isinstance(input, torch.Tensor):
                 input_name = "step_" + str(self.step) + "_" + module_name + "_forward_input_" + str(index)
                 if input_name in self.saved:
                     Logger.error("duplicate key: {}".format(input_name))
                 Logger.info("save module input: {}".format(input_name))
-                self.h5f.create_dataset(input_name, data=t.cpu().detach().numpy())
+                self.h5f.create_dataset(input_name, data=input.cpu().detach().numpy())
                 self.saved.append(input_name)
-                index += 1
-
-            for name, param in module.named_parameters():
-                param_name = "step_" + str(self.step) + "_" + module_name + "_forward_param_" + name
-                if param_name in self.saved:
-                    Logger.error("duplicate key: {}".format(param_name))
-                if not isinstance(param, torch.Tensor):
-                    continue
-                Logger.info("save module param: {}".format(param_name))
-                self.h5f.create_dataset(param_name, data=param.cpu().detach().numpy())
-                self.saved.append(param_name)
 
         return pre_forward_hook
 
@@ -85,12 +83,14 @@ class PercisionDebugger:
                     self.saved.append(output_name)
                     index += 1
             elif isinstance(output, torch.Tensor):
-                output_name = "step_" + str(self.step) + module_name + "forward_output_" + str(index)
+                output_name = "step_" + str(self.step) + "_" + module_name + "_forward_output_" + str(index)
                 if output_name in self.saved:
                     Logger.error("duplicate key: {}".format(output_name))
                 Logger.info("save module output: {}".format(output_name))
                 self.h5f.create_dataset(output_name, data=output.cpu().detach().numpy())
                 self.saved.append(output_name)
+            else:
+                Logger.error("unsupported output type: {}".format(type(output)))
 
         return post_forward_hook
 
@@ -111,7 +111,7 @@ class PercisionDebugger:
                     self.saved.append(input_name)
                     index += 1
             elif isinstance(input, torch.Tensor):
-                input_name = "step_" + str(self.step) + module_name + "backward_input_" + str(index)
+                input_name = "step_" + str(self.step) + "_" + module_name + "_backward_input_" + str(index)
                 if input_name in self.saved:
                     Logger.error("duplicate key: {}".format(input_name))
                 Logger.info("save module input: {}".format(input_name))
@@ -276,4 +276,4 @@ class PercisionDebugger:
         return self.rank not in self.ranks
         
 
-debugger = PercisionDebugger()
+percision_debugger = PercisionDebugger()

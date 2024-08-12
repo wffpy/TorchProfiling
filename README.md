@@ -69,6 +69,9 @@ python -m module_logging --compare --lhs_path 0.log --rhs_path 1.log --csv
 # analysis the  distribution op
 python -m module_logging --dist --path 7.log 
 
+# compare the two nn.Module inputs/outputs/parameters or torch.Tensor(s)
+python -m module_logging --percision --lhs_path 0.h5f --rhs_path 1.h5f
+
 ```
 
 ### 2. 统计C函数调用次数
@@ -140,6 +143,47 @@ python -m module_logging --path 7.log --detail
 
 # print all 3 kinds table
 python -m module_logging --path 7.log --all
+```
+
+### 5. Percision
+#### Step 1: Get nn.Module's input/output/parameters/grad Tensor(s)
+```
+from module_logging import percision_debugger
+
+m = model()
+
+percision_debugger.config(m, path="/tmp/", steps=[0, 1], ranks=[0])
+percision_debugger.__enter__()
+for iter in range(100):
+    inputs = []
+    m(inputs)
+    ......
+    optimizer.step()
+    percision_debugger.update_step()
+
+percision_debugger.__exit__()
+
+```
+
+```
+from module_logging import percision_debugger
+m = model()
+percision_debugger.config(m, path="/tmp/", steps=[0, 1], ranks=[0])
+
+with persion_debugger:
+    for iter in range(100):
+        inputs = []
+        m(inputs)
+        ......
+        optimizer.step()
+        percision_debugger.update_step()
+```
+
+
+### Step 2: Compare Two Files
+```
+# compare the two nn.Module inputs/outputs/parameters or torch.Tensor(s)
+python -m module_logging --percision --lhs_path 0.h5f --rhs_path 1.h5f
 ```
 
 
