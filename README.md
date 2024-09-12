@@ -76,8 +76,11 @@ python -m module_logging --percision --lhs_path 0.h5f --rhs_path 1.h5f
 
 ### 2. 统计C函数调用次数
 ```
+export ENABLE_HOOK_TRACE=true
+
 import module_logging
 module_logging.Hook.install_hook()
+
 
 python test.py
 ```
@@ -85,6 +88,7 @@ python test.py
 
 ### 3. 打印C函数的调用栈
 ```
+export ENABLE_HOOK_TRACE=true
 export PRINT_BACKTRACE=true
 
 import module_logging

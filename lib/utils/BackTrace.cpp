@@ -100,12 +100,21 @@ std::string demangle(const char *mangled_name) {
  *******************************************************************************/
 Tracer::Tracer(std::string name)
     : max_depth(100), real_size(0), func_name(name) {
+    static const char *enable_trace = std::getenv("ENABLE_HOOK_TRACE");
     static const char *print_backtrace = std::getenv("PRINT_BACKTRACE");
-    if (print_backtrace &&
-        (std::string(print_backtrace) == "true" || std::string(print_backtrace) == "TRUE")) {
+    bool trace_flag = false;
+    if (enable_trace &&
+        (std::string(enable_trace) == "true" || std::string(enable_trace) == "TRUE")) {
+        trace_flag = true;
+    }
+
+    if (trace_flag) {
         stack.reserve(max_depth);
         trace();
-        print();
+        if (print_backtrace &&
+            (std::string(print_backtrace) == "true" || std::string(print_backtrace) == "TRUE")) {
+            print();
+        }
     }
 }
 
