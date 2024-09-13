@@ -265,7 +265,7 @@ class Tracer(TorchDispatchMode):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.monkey_patch.recover()
-        for k in self.TENSOR_FUNCS_NO_DISPATCH:
+        for k in TENSOR_FUNCS_NO_DISPATCH:
             setattr(torch.Tensor, k, self._pt_impls[k])
         super().__exit__(exc_type, exc_value, traceback)
         Hook.write_to_file()
