@@ -29,17 +29,28 @@ import module_logging as ml
 
 with ml.combined_context():
     model()
-
 ```
 
 ##### Mode 2: profiling both the nn.Module and aten op
 ```
+m = model()
 import module_logging as ml
 
 m = model
-with ml.combined_context(m):
+with ml.logger.PerformanceLogger(m):
     m()
+```
 
+```
+from  module_logging import logger.PerformanceLogger as PL
+pl = PL()
+m = model()
+pl.config(model=m)
+
+pl.__enter__()
+for i in range(100):
+    m()
+pl.__exit__()
 ```
 
 #### step 2: Post-Processing
