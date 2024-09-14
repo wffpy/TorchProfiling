@@ -205,6 +205,7 @@ int GpuHookWrapper::local_cuda_launch_kernel(const void *func, dim3 gridDim,
         ELOG() << "Error: cudaLaunchKernel is not found";
     }
     cudaDeviceSynchronize();
+    cupti_activity_flush();
 
     return 0;
 }
@@ -331,11 +332,12 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 kernelParams,
                                 extra);
     cudaDeviceSynchronize();
+    cupti_activity_flush(); 
     return ret;
 }
 
 // REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
-// REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
+REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
 #else
 // Non-Gpu device
 namespace gpu_profiler {

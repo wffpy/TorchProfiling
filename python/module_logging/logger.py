@@ -172,8 +172,8 @@ class PerformanceLogger(TorchDispatchMode):
         output = op(*args, **kwargs)
         torch.cuda.synchronize()
 
-        if config.cpp_extend():
-            Hook.cuda_profiler_flush()
+        # if config.cpp_extend():
+        #     Hook.cuda_profiler_flush()
         #  insert after-op delimiter
         print("[END_SYMBOL]: {}".format(str(op)), flush=True)
         return output
