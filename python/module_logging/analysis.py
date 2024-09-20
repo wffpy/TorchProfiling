@@ -10,6 +10,11 @@ import prettytable as pt
 from .logging import Logger
 from enum import Enum, auto
 from textwrap import fill
+import subprocess
+
+def demangle(mangled_name):
+    result = subprocess.run(['c++filt', mangled_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return result.stdout.decode('utf-8').strip()
 
 
 class STATE(Enum):
@@ -430,6 +435,15 @@ class AtenOpAnalyzer(Analyzer):
             Logger.debug("Op Time")
             if self.current_op:
                 self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
+        elif (self.collection_state == STATE.Module or self.collection_state == STATE.FORMAL) and  "[XPURT_PROF]" in line:
+            if self.current_op is None:
+                extention_op_time = float(line.split(" ")[-2]) / 1000000
+                extention_op_name = demangle(float(line.split(" ")[-4]))
+                self.current_op = AtenOp(extention_op_name, self.current_m_name)
+                self.current_op.set_time(extention_op_time)
+                self.op_or_module.append(self.current_op)
+                self.current_op = None
+            
             return True
         return False
 
