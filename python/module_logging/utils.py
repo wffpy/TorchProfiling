@@ -112,68 +112,85 @@ def singleton(cls):
     return inner
         
 def mock_all_reduce(tensor, op=ReduceOp.SUM, group=None, async_op=False):
+    torch.cuda.synchronize()
     print("[DIST START_SYMBOL]: torch.distributed.all_reduce", flush=True)
     bytest = tensor.numel() * tensor.element_size()
     print("[DIST BYTES]:  {} bytes".format(bytest), flush=True)
     ret = origin_all_reduce(tensor, op, group, async_op)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed.all_reduce", flush=True)
     return ret
 
 def mock_broadcast(tensor, src, group=None, async_op=False):
+    torch.cuda.synchronize()
+    print("[DIST END_SYMBOL]: torch.distributed.all_reduce", flush=True)
     print("[DIST START_SYMBOL]: torch.distributed.broadcast", flush=True)
     bytest = tensor.numel() * tensor.element_size()
     print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
     ret = origin_broadcast(tensor, src, group, async_op)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed.broadcast", flush=True)
     return ret
 
 def mock_barrier(group=None, async_op=False, device_ids=None):
+    torch.cuda.synchronize()
     print("[DIST START_SYMBOL]: torch.distributed.barrier", flush=True)
     ret = origin_barrier(group, async_op, device_ids)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed.barrier", flush=True)
     return ret
 
 # def mock_all_gather(tensor_list, tensor, group=None, async_op=False):
 #     return
 def mock_all_gather(tensor_list, tensor, group=None, async_op=False):
+    torch.cuda.synchronize()
     print("[DIST START_SYMBOL]: torch.distributed.all_gather", flush=True)
     bytest = tensor.numel() * tensor.element_size()
     print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
     ret = origin_all_gather(tensor_list, tensor, group, async_op)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed.all_gather", flush=True)
     return ret
 
 def mock__all_gather_base(output_tensor, input_tensor, group=None, async_op=False):
+    torch.cuda.synchronize()
     print("[DIST START_SYMBOL]: torch.distributed._all_gather_base", flush=True)
     bytest = output_tensor.numel() * output_tensor.element_size()
     print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
     ret = origin__all_gather_base(output_tensor, input_tensor, group, async_op)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed._all_gather_base", flush=True)
     return ret
 
 def mock__reduce_scatter_base(
     output_tensor, input, op=ReduceOp.SUM, group=None, async_op=False
 ):
+    torch.cuda.synchronize()
     print("[DIST START_SYMBOL]: torch.distributed._reduce_scatter_base", flush=True)
     bytest = output_tensor.numel() * output_tensor.element_size()
     print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
     ret = origin__reduce_scatter_base(output_tensor, input, op, group, async_op)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed._reduce_scatter_base", flush=True)
     return ret
 
 def mock_send(tensor: torch.Tensor, dst: int, group: Optional[ProcessGroup] = None, tag: int = 0) -> None:
+    torch.cuda.synchronize()
     print("[DIST START_SYMBOL]: torch.distributed.send", flush=True)
     bytest = tensor.numel() * tensor.element_size()
     print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
     ret = origin_send(tensor, dst, group, tag)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed.send", flush=True)
     return ret 
 
 def mock_recv(tensor: torch.Tensor, src: Optional[int] = None, group: Optional[ProcessGroup] = None, tag: int = 0) -> None:
+    torch.cuda.synchronize()
     print("[DIST START_SYMBOL]: torch.distributed.recv", flush=True)
     bytest = tensor.numel() * tensor.element_size()
     print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
     ret = origin_recv(tensor, src, group, tag)
+    torch.cuda.synchronize()
     print("[DIST END_SYMBOL]: torch.distributed.recv", flush=True)
     return  ret
 
