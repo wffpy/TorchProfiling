@@ -2,10 +2,12 @@ import os
 import sys
 import subprocess
 from setuptools import setup, find_packages
-from setuptools import setup, Extension
+from setuptools import setup, Extension, Command
 from setuptools.command.build_ext import build_ext
+from setuptools.command.install_lib import install_lib
 import pybind11
 import configparser
+import sysconfig
 
 # 读取配置文件
 config = configparser.ConfigParser()
@@ -68,6 +70,14 @@ class CMakeBuild(build_ext):
         subprocess.check_call(["cmake", "--build", "."], cwd=build_dir)
 
 
+class InstallLibWithPTH(install_lib):
+    def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
+        path = os.path.join(os.path.dirname(__file__), "module_logging.pth")
+        dest = os.path.join(self.install_dir, os.path.basename(path))
+        self.copy_file(path, dest)
+        self.outputs = [dest]
+
 def regular_setup():
     setup(
         name="module_logging",
@@ -84,6 +94,10 @@ def regular_setup():
         entry_points={
             "console_scripts": ["module_logging = module_logging.__main__:main"]
         },
+        cmdclass={
+            "install_lib": InstallLibWithPTH,
+        },
+
         zip_safe=False,
     )
 

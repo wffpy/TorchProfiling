@@ -5,7 +5,6 @@ from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporaril
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
 from . import config
-from .utils import DistOpMonkeyPatch 
 from functools import partial
 
 cpp_extend = config.get_config("database", "cpp_extend")
@@ -46,9 +45,12 @@ class PerformanceLogger(TorchDispatchMode):
 
     def __init__(self, model=None, profiling_bw=True) -> None:
         super().__init__()
+        enable_prof_env = os.environ.get('ENABLE_PROFILING', None)
+        self.enable_profiling = False
+        if enable_prof_env is not None:
+            self.enable_profiling = enable_prof_env == 'True' or enable_prof_env == 'true'
+
         self.profiling_bw = profiling_bw
-        # monkey patch for distributed op  
-        self.monkey_patch = DistOpMonkeyPatch()
         # traverse modules and register forward and backward hooks for each
         if model:
             if isinstance(model, list):
@@ -79,9 +81,9 @@ class PerformanceLogger(TorchDispatchMode):
                     self._register_hook(name, m)
 
     def __enter__(self):
+        print("Enter performance logger...")
         if config.cpp_extend():
             Hook.cuda_profiler_start()
-        self.monkey_patch.replace()
         self._pt_impls = {}
         for k in TENSOR_FUNCS_NO_DISPATCH:
             impl = getattr(torch.Tensor, k)
@@ -89,10 +91,10 @@ class PerformanceLogger(TorchDispatchMode):
             setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
     
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type=None, exc_value=None, traceback=None):
+        print("Exit performance logger...")
         if config.cpp_extend():
             Hook.cuda_profiler_end()
-        self.monkey_patch.recover()
         for k in TENSOR_FUNCS_NO_DISPATCH:
             setattr(torch.Tensor, k, self._pt_impls[k])
         super().__exit__(exc_type, exc_value, traceback)
@@ -164,18 +166,17 @@ class PerformanceLogger(TorchDispatchMode):
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
-        #  insert pre-op delimiter
-        print("[START_SYMBOL]: {}".format(str(op)), flush=True)
-
-        # call op
-        torch.cuda.synchronize()
-        output = op(*args, **kwargs)
-        torch.cuda.synchronize()
-
-        # if config.cpp_extend():
-        #     Hook.cuda_profiler_flush()
-        #  insert after-op delimiter
-        print("[END_SYMBOL]: {}".format(str(op)), flush=True)
+        if self.enable_profiling:
+            torch.cuda.synchronize()
+            #  insert pre-op delimiter
+            print("[START_SYMBOL]: {}".format(str(op)), flush=True)
+            # call op
+            output = op(*args, **kwargs)
+            torch.cuda.synchronize()
+            #  insert after-op delimiter
+            print("[END_SYMBOL]: {}".format(str(op)), flush=True)
+        else:
+            return op(*args, **kwargs)
         return output
 
 

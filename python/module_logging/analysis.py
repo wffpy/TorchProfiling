@@ -435,6 +435,7 @@ class AtenOpAnalyzer(Analyzer):
             Logger.debug("Op Time")
             if self.current_op:
                 self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
+            return True
         elif (self.collection_state == STATE.MODULE or self.collection_state == STATE.FORMAL) and  "[XPURT_PROF]" in line:
             if self.current_op is None:
                 extention_op_time = float(line.split(" ")[-2]) / 1000000
@@ -443,7 +444,6 @@ class AtenOpAnalyzer(Analyzer):
                 self.current_op.set_time(extention_op_time)
                 self.op_or_module.append(self.current_op)
                 self.current_op = None
-            
             return True
         return False
 
