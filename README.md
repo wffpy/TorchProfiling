@@ -22,6 +22,10 @@ bash scripts/build.sh
 
 ### 1. Get Profiling Data
 #### step 1: Profiling
+##### Env
+```
+export ENABLE_PROFILING=True
+```
 
 ##### Mode 1: just profiling the aten op 
 ```
@@ -200,8 +204,3 @@ with persion_debugger:
 # compare the two nn.Module inputs/outputs/parameters or torch.Tensor(s)
 python -m module_logging --percision --lhs_path 0.h5f --rhs_path 1.h5f
 ```
-
-
-### C Function Counter
-TODO:
-use a different hook function which will try to modify the hooked function's assembly code.
