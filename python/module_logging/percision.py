@@ -70,7 +70,7 @@ class PercisionDebugger:
                 input_name = "step_" + str(self.step) + "_" + module_name + "_forward_input_" + str(index)
                 if input_name in self.saved:
                     print("duplicate key: {}".format(input_name))
-                    continue
+                    return
                 print("save module input: {}".format(input_name))
                 self.h5f.create_dataset(input_name, data=input.cpu().float().detach().numpy())
                 self.saved.append(input_name)
@@ -98,7 +98,7 @@ class PercisionDebugger:
                 output_name = "step_" + str(self.step) + "_" + module_name + "_forward_output_" + str(index)
                 if output_name in self.saved:
                     print("duplicate key: {}".format(output_name))
-                    continue
+                    return
                 print("save module output: {}".format(output_name))
                 self.h5f.create_dataset(output_name, data=output.cpu().float().detach().numpy())
                 self.saved.append(output_name)
@@ -122,7 +122,6 @@ class PercisionDebugger:
                         # print("duplicate key: {}".format(input_name))
                         print("duplicate key: {}".format(input_name))
                         continue
-                        # assert False, "duplicate key: {}".format(input_name)
                     if t is None or not isinstance(t, torch.Tensor):
                         continue
                     print("save module grad_output: {}".format(input_name))
@@ -133,6 +132,7 @@ class PercisionDebugger:
                 input_name = "step_" + str(self.step) + "_" + module_name + "_backward_input_" + str(index)
                 if input_name in self.saved:
                     print("duplicate key: {}".format(input_name))
+                    return
                 print("save module grad_output: {}".format(input_name))
                 self.h5f.create_dataset(input_name, data=grad_output.cpu().float().detach().numpy())
                 self.saved.append(input_name)
@@ -161,6 +161,7 @@ class PercisionDebugger:
                 output_name = "step_" + str(self.step) + "_" + module_name + "backward_output_" + str(index)
                 if output_name in self.saved:
                     print("duplicate key: {}".format(output_name))
+                    return
                 print("save module grad_input: {}".format(output_name))
                 self.h5f.create_dataset(output_name, data=grad_input.cpu().float().detach().numpy())
                 self.saved.append(output_name)
@@ -229,6 +230,7 @@ class PercisionDebugger:
                     param_name = "step_" + str(self.step) + "_weight_updated_" + name
                 if param_name in self.saved:
                     print("duplicate key: {}".format(param_name))
+                    continue
                 if param.grad is None or not isinstance(param, torch.Tensor):
                     continue
                 print("save weight: {}".format(param_name))
@@ -243,6 +245,7 @@ class PercisionDebugger:
                 param_name = "step_" + str(self.step) + "_weight_grad_" + name
                 if param_name in self.saved:
                     print("duplicate key: {}".format(param_name))
+                    continue
                 if not isinstance(param.grad, torch.Tensor):
                     continue
                 print("save module grad: {}".format(param_name))
