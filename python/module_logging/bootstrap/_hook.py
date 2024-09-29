@@ -130,7 +130,7 @@ class DistInfoGenerator(object):
         return None
 
     @staticmethod
-    def gen_allgather(args, kwargs):
+    def gen_all_gather(args, kwargs):
         tensor = get_param(args, kwargs, 1, "tensor")
         if tensor is not None:
             return gen_bytes_str(tensor)
@@ -144,7 +144,7 @@ class DistInfoGenerator(object):
         return None
 
     @staticmethod
-    def gen__reduce_scatter_base(args, kwargs):
+    def gen_reduce_scatter(args, kwargs):
         tensor = get_param(args, kwargs, 0, "output_tensor")
         if tensor is not None:
             return gen_bytes_str(tensor)
@@ -174,7 +174,8 @@ def print_dist_op_bytes_str(op_name, args, kwargs):
         if out is not None:
             print(out)
     else:
-        assert False, "No such function: {}".format(gen_func_name)
+        # assert False, "No such function: {}".format(gen_func_name)
+        print("No such function: {}".format(gen_func_name))
 
 def enable_profiling():
     enable_prof_env = os.environ.get('ENABLE_PROFILING', None)
