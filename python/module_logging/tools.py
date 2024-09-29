@@ -121,6 +121,10 @@ def parse_log():
             if args.detail:
                 d_table = analyzer.gen_detail_table()
                 write_table(d_table, "detail", args.csv)
+
+    elif args.percision:
+        table = compare(args.lhs_path, args.rhs_path)
+        print(table)
         
     elif not args.compare:
         analyzer = AtenOpAnalyzer(args.path)
@@ -155,6 +159,3 @@ def parse_log():
             tables = gen_module_compare_tables(analyzer1, analyzer2)
             for table in tables:
                 print(table)
-    elif args.percision:
-        table = compare(args.lhs_path, args.rhs_path)
-        print(table)

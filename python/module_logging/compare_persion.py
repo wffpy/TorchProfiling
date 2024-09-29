@@ -107,9 +107,9 @@ def compare(path1, path2):
         rhs_max = torch.max(flat_rhs).item()
 
         if abs(abs(cos) - 1) > 0.05:
-            table.add_row(["F", key, cos, rmse, mape, max_diff, max_lhs, max_rhs, lhs_mean, rhs_mean])
+            table.add_row(["F", key, cos, rmse, mape, max_diff, lhs_max, rhs_max, lhs_mean, rhs_mean])
         else:
-            table.add_row([" ", key, cos, rmse, mape, max_diff, max_lhs, max_rhs, lhs_mean, rhs_mean])
+            table.add_row([" ", key, cos, rmse, mape, max_diff, lhs_max, rhs_max, lhs_mean, rhs_mean])
 
     return table
 
