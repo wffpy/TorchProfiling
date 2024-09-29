@@ -3,7 +3,7 @@ from ast import arg
 from asyncore import write
 import pathlib
 import sys
-from .analysis_xpu_log import parse_log as parse_xpu_log
+# from .analysis_xpu_log import parse_log as parse_xpu_log
 from .analysis import AtenOpAnalyzer, DistAnalyzer, gen_module_compare_tables, gen_module_compare_table_str
 import prettytable as pt
 from .cut_log import extract_section

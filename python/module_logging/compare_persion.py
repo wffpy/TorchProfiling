@@ -81,7 +81,7 @@ def compare(path1, path2):
  
     for key in rhs_keys:
         if not key in lhs_keys:
-            Logger.info("not found: {} in lhs keys".format(key))
+            print("not found: {} in lhs keys".format(key))
             continue
 
         lhs = load_data(lhs_h5f, key)
@@ -94,7 +94,7 @@ def compare(path1, path2):
         flat_rhs = rhs.to(torch.float32).view(-1)
  
         if (flat_rhs.shape != flat_lhs.shape):
-            Logger.info("skipping shape different op: {}, lhs shape: {}, rhs shape: {}".format(key, lhs.shape, rhs.shape))
+            print("skipping shape different op: {}, lhs shape: {}, rhs shape: {}".format(key, lhs.shape, rhs.shape))
             continue
 
         cos = cosin(flat_lhs, flat_rhs)
