@@ -26,11 +26,11 @@ class CMakeBuild(build_ext):
     def run(self):
         for ext in self.extensions:
             self.build_extension(ext)
-        # Install .pth file
-        src = os.path.join(os.path.dirname(__file__), "module_logging.pth")
-        install_lib = self.get_finalized_command("install_lib").install_dir
-        dst = os.path.join(install_lib, os.path.basename(src))
-        self.copy_file(src, dst)
+        # # Install .pth file
+        # src = os.path.join(os.path.dirname(__file__), "module_logging.pth")
+        # install_lib = self.get_finalized_command("install_lib").install_dir
+        # dst = os.path.join(install_lib, os.path.basename(src))
+        # self.copy_file(src, dst)
 
     def build_extension(self, ext):
         ninja_args = []
@@ -121,7 +121,7 @@ def cpp_extend_setup():
         ext_modules=[
             CMakeExtension("module_logging.Hook"),
         ],
-        cmdclass=dict(build_ext=CMakeBuild),
+        cmdclass=dict(build_ext=CMakeBuild, install_lib=InstallLibWithPTH),
         zip_safe=False,
     )
 

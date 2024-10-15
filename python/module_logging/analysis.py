@@ -446,7 +446,7 @@ class AtenOpAnalyzer(Analyzer):
                 self.current_op = AtenOp(extention_op_name, self.current_m_name)
                 self.current_op.set_time(extention_op_time)
                 self.op_or_module.append(self.current_op)
-                self.total = extention_op_time
+                self.total += extention_op_time
                 self.current_op = None
             return True
         return False
