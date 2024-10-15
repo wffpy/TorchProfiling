@@ -430,6 +430,7 @@ class AtenOpAnalyzer(Analyzer):
         return False
 
     def identify_op_time(self, line: str):
+        Logger.debug(line)
         # not get the time of dist op
         if self.collection_state == STATE.OP and "[XPURT_PROF]" in line:
             Logger.debug("Op Time")
@@ -438,11 +439,14 @@ class AtenOpAnalyzer(Analyzer):
             return True
         elif (self.collection_state == STATE.MODULE or self.collection_state == STATE.FORMAL) and  "[XPURT_PROF]" in line:
             if self.current_op is None:
+                Logger.debug("Op Time")
+                Logger.debug(line)
                 extention_op_time = float(line.split(" ")[-2]) / 1000000
-                extention_op_name = demangle(float(line.split(" ")[-4]))
+                extention_op_name = demangle(line.split(" ")[-6])
                 self.current_op = AtenOp(extention_op_name, self.current_m_name)
                 self.current_op.set_time(extention_op_time)
                 self.op_or_module.append(self.current_op)
+                self.total = extention_op_time
                 self.current_op = None
             return True
         return False
