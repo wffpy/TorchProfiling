@@ -147,6 +147,7 @@ class TensorTracer(TorchDispatchMode):
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:
             kwargs = {}
+        print("[aten op name]: {}".format(str(op)))
         output = op(*args, **kwargs)
         for name in self.trace_info.keys():
             t_info = self.trace_info[name]
