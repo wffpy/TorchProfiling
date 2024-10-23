@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import torch.distributed as dist
 from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
@@ -38,6 +39,13 @@ class TensorInfo:
     
     def get_mode(self):
         return self.mode
+    
+    def try_release(self):
+        ref_count = sys.getrefcount(self.tensor)
+        if ref_count == 2:
+            self.tensor = None
+            return True
+        return False
 
     def compare(self):
         cpu_t = self.tensor.detach().cpu().float()
@@ -149,6 +157,12 @@ class TensorTracer(TorchDispatchMode):
             kwargs = {}
         print("[aten op name]: {}".format(str(op)))
         output = op(*args, **kwargs)
+        # try to relase tensor, reduce memory peak
+        for name in self.trace_info.keys():
+            t_info = self.trace_info[name]
+            if t_info.try_release():
+                self.trace_info.pop(name)
+
         for name in self.trace_info.keys():
             t_info = self.trace_info[name]
             if t_info.get_mode() == Mode.OP:
