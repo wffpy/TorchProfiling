@@ -147,9 +147,6 @@ class PerformanceLogger(TorchDispatchMode):
         def post_forward_hook(module, input, output):
             torch.cuda.synchronize()
             print("[END FORWARD]: {}".format(name), flush=True)
-            # weights = module.state_dict()
-            # print("weights number: {}".format(len(weights)))
-            # print("weight keys: {}".format(weights.keys()))
 
         return post_forward_hook
 
@@ -164,9 +161,6 @@ class PerformanceLogger(TorchDispatchMode):
         def post_backward_hook(module, input, output):
             torch.cuda.synchronize()
             print("[END BACKWARD]: {}_backward".format(name), flush=True)
-            # weights = module.state_dict()
-            # print("weights number: {}".format(len(weights)))
-            # print("weight keys: {}".format(weights.keys()))
 
         return post_backward_hook
 
