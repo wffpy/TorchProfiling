@@ -17,9 +17,9 @@ def get_config(section, key):
 
 
 def cpp_extend():
-    '''
+    """
     get the cpp_extend configuration from config.ini
-    '''
+    """
     cfg = get_config("database", "cpp_extend")
     if cfg == "True":
         return True

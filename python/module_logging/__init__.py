@@ -3,7 +3,7 @@ from . import trace
 from . import config
 from .logger import PerformanceLogger, combined_context
 from .percision import PercisionDebugger, percision_debugger
-from .tensor_tracer import TensorTracer 
+from .tensor_tracer import TensorTracer
 
 tensor_tracer = TensorTracer()
 

@@ -20,8 +20,9 @@ from torch._C._distributed_c10d import (
     Store,
     DebugLevel,
     get_debug_level,
-    Work
+    Work,
 )
+
 # from logging import Logger
 
 # class GlobalFlags:
@@ -58,7 +59,7 @@ from torch._C._distributed_c10d import (
 #             _instance[cls] = cls()
 #         return _instance[cls]
 #     return inner
-        
+
 # def mock_all_reduce(tensor, op=ReduceOp.SUM, group=None, async_op=False):
 #     if GlobalFlags.get_flag() == True:
 #         torch.cuda.synchronize()
@@ -146,7 +147,7 @@ from torch._C._distributed_c10d import (
 #         ret = origin_send(tensor, dst, group, tag)
 #         torch.cuda.synchronize()
 #         print("[DIST END_SYMBOL]: torch.distributed.send", flush=True)
-#         return ret 
+#         return ret
 #     else:
 #         return origin_send(tensor, dst, group, tag)
 
@@ -202,9 +203,9 @@ from torch._C._distributed_c10d import (
 #         '''
 #         recover the original function
 #         '''
-#         torch.distributed.all_reduce = origin_all_reduce 
-#         torch.distributed.broadcast = origin_broadcast 
-#         torch.distributed.barrier = origin_barrier 
+#         torch.distributed.all_reduce = origin_all_reduce
+#         torch.distributed.broadcast = origin_broadcast
+#         torch.distributed.barrier = origin_barrier
 #         torch.distributed._all_gather_base = origin__all_gather_base
 #         torch.distributed._reduce_scatter_base = origin__reduce_scatter_base
 #         torch.distributed.all_gather = origin_all_gather
@@ -240,7 +241,7 @@ from torch._C._distributed_c10d import (
 
 # def gen_bytes_str(tensor):
 #     bytes = tensor.numel() * tensor.element_size()
-#     return "[DIST BYTES]:  {} bytes".format(bytes) 
+#     return "[DIST BYTES]:  {} bytes".format(bytes)
 
 # class DistInfoGenerator(object):
 #     @staticmethod
@@ -362,4 +363,3 @@ from torch._C._distributed_c10d import (
 #             return gen_dist_op_str(dist_op_name, args, kwargs, INFOTYPE.AFTER)
 #         else:
 #             return "[END_SYMBOL]: {}".format(name)
-        

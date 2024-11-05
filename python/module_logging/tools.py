@@ -3,8 +3,14 @@ from ast import arg
 from asyncore import write
 import pathlib
 import sys
+
 # from .analysis_xpu_log import parse_log as parse_xpu_log
-from .analysis import AtenOpAnalyzer, DistAnalyzer, gen_module_compare_tables, gen_module_compare_table_str
+from .analysis import (
+    AtenOpAnalyzer,
+    DistAnalyzer,
+    gen_module_compare_tables,
+    gen_module_compare_table_str,
+)
 import prettytable as pt
 from .cut_log import extract_section
 from .compare_persion import compare
@@ -57,7 +63,9 @@ def parse_args():
 
     arg_parser.add_argument("--cut_log", action="store_true", help="split log")
 
-    arg_parser.add_argument("--dist", action="store_true", help="analysis distributed ops")
+    arg_parser.add_argument(
+        "--dist", action="store_true", help="analysis distributed ops"
+    )
 
     arg_parser.add_argument(
         "--begin",
@@ -125,7 +133,7 @@ def parse_log():
     elif args.percision:
         table = compare(args.lhs_path, args.rhs_path)
         print(table)
-        
+
     elif not args.compare:
         analyzer = AtenOpAnalyzer(args.path)
         analyzer.analysis()

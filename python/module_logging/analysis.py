@@ -12,9 +12,12 @@ from enum import Enum, auto
 from textwrap import fill
 import subprocess
 
+
 def demangle(mangled_name):
-    result = subprocess.run(['c++filt', mangled_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return result.stdout.decode('utf-8').strip()
+    result = subprocess.run(
+        ["c++filt", mangled_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    return result.stdout.decode("utf-8").strip()
 
 
 class STATE(Enum):
@@ -123,38 +126,42 @@ class OpInfoBase(object):
     def set_time(self, time):
         # ms
         self._time_ += time
-    
+
     def get_name(self):
         return self._name_
 
     def get_time(self):
         # ms
         return self._time_
-    
+
     def get_module_name(self):
         return self.module_name
-    
+
+
 # record AtenOp info
 class AtenOp(OpInfoBase):
     def __init__(self, name="", m_name="", time=0) -> None:
         super().__init__(name, m_name, time)
+
 
 # record Distribution Op info
 class DistOp(OpInfoBase):
     def __init__(self, name="", m_name="", time=0, d_bytes=0) -> None:
         super().__init__(name, m_name, time)
         self._bytes_ = d_bytes
+
     def set_bytes(self, bts):
         self._bytes_ = bts
-    
+
     def get_bytes(self):
         return self._bytes_
-    
+
     def get_bw(self):
         # GB/s
         if self._time_ == 0:
             return 0
         return self._bytes_ / self._time_ / 1000000
+
 
 class OpSummary(object):
     def __init__(self, time) -> None:
@@ -187,23 +194,26 @@ class OpSummary(object):
     def get_call_count(self):
         return self.call_count
 
+
 class AtenOpSummary(OpSummary):
     def __init__(self, time) -> None:
         super().__init__(time)
+
 
 class DistOpSummary(OpSummary):
     def __init__(self, time, bytes) -> None:
         super().__init__(time)
         self.total_bytes = bytes
-    
+
     def add_bytes(self, byt):
         self.total_bytes += byt
-    
+
     def get_total_bytes(self):
         return self.total_bytes
 
     def get_avg_bw(self):
         return self.total_bytes / self.total_time / 1000000
+
 
 class ModuleStack(object):
     def __init__(self) -> None:
@@ -269,12 +279,9 @@ class Analyzer:
         2. if there is no module in this iteration, return None
         """
         if (
-            (
-                self.collection_state == STATE.FORMAL
-                or self.collection_state == STATE.MODULE
-            )
-            and ("[BEGIN FORWARD]" in line or "[BEGIN BACKWARD]" in line)
-        ):
+            self.collection_state == STATE.FORMAL
+            or self.collection_state == STATE.MODULE
+        ) and ("[BEGIN FORWARD]" in line or "[BEGIN BACKWARD]" in line):
             # if self.current_module is not None:
             #     self.stack.push(self.current_module)
             self.current_m_name = line.rstrip("\n").split(":")[-1]
@@ -327,7 +334,6 @@ class Analyzer:
     def identify_op_time(self, line: str):
         pass
 
-
     def get_total(self):
         return self.total
 
@@ -367,6 +373,7 @@ class Analyzer:
             if isinstance(elem, LocalModule):
                 yield elem
 
+
 class AtenOpAnalyzer(Analyzer):
     def __init__(self, path):
         super().__init__(path)
@@ -393,13 +400,16 @@ class AtenOpAnalyzer(Analyzer):
             self.current_op_name = line.rstrip("\n").split(":")[-1].replace("_", " ")
             self.current_op = AtenOp(self.current_op_name, self.current_m_name)
             return True
-        elif (self.collection_state == STATE.FORMAL or self.collection_state == STATE.MODULE) and "[DIST START_SYMBOL]" in line:
+        elif (
+            self.collection_state == STATE.FORMAL
+            or self.collection_state == STATE.MODULE
+        ) and "[DIST START_SYMBOL]" in line:
             if "[DIST START_SYMBOL]" in line:
                 self.collection_state = STATE.DISTOP
             self.current_op_name = line.rstrip("\n").split(":")[-1].replace("_", " ")
             self.current_op = AtenOp(self.current_op_name, self.current_m_name)
             return True
-        
+
         return False
 
     def identify_op_end(self, line: str):
@@ -437,7 +447,10 @@ class AtenOpAnalyzer(Analyzer):
             if self.current_op:
                 self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
             return True
-        elif (self.collection_state == STATE.MODULE or self.collection_state == STATE.FORMAL) and  "[XPURT_PROF]" in line:
+        elif (
+            self.collection_state == STATE.MODULE
+            or self.collection_state == STATE.FORMAL
+        ) and "[XPURT_PROF]" in line:
             if self.current_op is None:
                 Logger.debug("Op Time")
                 Logger.debug(line)
@@ -455,7 +468,7 @@ class AtenOpAnalyzer(Analyzer):
         lines = []
         with open(self.log_path, "r") as f:
             lines = f.readlines()
-        line_index =0
+        line_index = 0
         for line in lines:
             Logger.debug("Line {}: {}".format(line_index, line))
             line_index += 1
@@ -469,7 +482,7 @@ class AtenOpAnalyzer(Analyzer):
                 continue
             else:
                 self.identify_op_time(line)
- 
+
     def gen_detail_table(self):
         """
         Function:
@@ -552,6 +565,7 @@ class AtenOpAnalyzer(Analyzer):
         table.align = "l"
         return table
 
+
 class DistAnalyzer(Analyzer):
     def __init__(self, path):
         super().__init__(path)
@@ -600,7 +614,7 @@ class DistAnalyzer(Analyzer):
             return True
         return False
 
-    def identify_dist_bytes(self, line:str):
+    def identify_dist_bytes(self, line: str):
         if self.collection_state == STATE.DISTOP and "[DIST BYTES]" in line:
             Logger.debug("DIST Bytes")
             if self.current_op:
@@ -609,13 +623,13 @@ class DistAnalyzer(Analyzer):
         return False
 
     def analysis(self):
-        '''
+        """
         ananlyis the distributed ops
-        '''
+        """
         lines = []
         with open(self.log_path, "r") as f:
             lines = f.readlines()
-        line_index =0
+        line_index = 0
         for line in lines:
             Logger.debug("Line {}: {}".format(line_index, line))
             line_index += 1
@@ -648,7 +662,9 @@ class DistAnalyzer(Analyzer):
             elif isinstance(elem, OpInfoBase):
                 final_list.append(elem)
 
-        table = pt.PrettyTable(["Module", "Dist Op", "Bytes", "Time(ms)", "BW(GB/s)", "Percent(BW/20)"])
+        table = pt.PrettyTable(
+            ["Module", "Dist Op", "Bytes", "Time(ms)", "BW(GB/s)", "Percent(BW/20)"]
+        )
         for elem in final_list:
             table.add_row(
                 [
@@ -657,13 +673,13 @@ class DistAnalyzer(Analyzer):
                     elem.get_bytes(),
                     elem.get_time(),
                     elem.get_bw(),
-                    elem.get_bw() / 20
+                    elem.get_bw() / 20,
                 ]
             )
         table.set_style(pt.DEFAULT)
         table.align = "l"
         return table
-    
+
     def gen_summary_table(self):
         final_list = self.get_op_list()
         op_dict = {}
@@ -684,16 +700,10 @@ class DistAnalyzer(Analyzer):
         )
 
         table = pt.PrettyTable(
-            [
-                "Op",
-                "Total Time(ms)",
-                "Total Bytes",
-                "Avg Badnwidth(GB/s)",
-                "Percent(%)"
-            ]
+            ["Op", "Total Time(ms)", "Total Bytes", "Avg Badnwidth(GB/s)", "Percent(%)"]
         )
         for op in op_list:
-            percent = op[1].get_avg_bw() / 20 
+            percent = op[1].get_avg_bw() / 20
             table.add_row(
                 [
                     fill(op[0], width=40),
@@ -705,8 +715,8 @@ class DistAnalyzer(Analyzer):
             )
         table.align = "l"
         return table
-        
- 
+
+
 def count_module(op_or_moudle: list):
     counter = 0
     for elem in op_or_moudle:
@@ -818,7 +828,7 @@ def merge_block(lhs: Block, rhs: Block):
                     lhs_op.get_time(),
                     rhs_op.get_name(),
                     rhs_op.get_time(),
-                    ""
+                    "",
                 ]
             )
         elif i < len(lhs_op_list):
@@ -832,7 +842,14 @@ def merge_block(lhs: Block, rhs: Block):
                 [fill("", width=200), "", "", rhs_op.get_name(), rhs_op.get_time(), ""]
             )
     table.add_row(
-        [fill("", width=200), "GPU Total", lhs.get_time(), "XPU Total", rhs.get_time(), lhs.get_time() / rhs.get_time()]
+        [
+            fill("", width=200),
+            "GPU Total",
+            lhs.get_time(),
+            "XPU Total",
+            rhs.get_time(),
+            lhs.get_time() / rhs.get_time(),
+        ]
     )
     return table
 
@@ -869,16 +886,16 @@ def compare(analyzer1, analyzer2):
 def same_table(lhs, rhs):
     lhs_rows = len(lhs._rows)
     lhs_columns = len(lhs.field_names)
-    
+
     rhs_rows = len(rhs._rows)
     rhs_columns = len(rhs.field_names)
 
-    if (lhs_rows != rhs_rows or lhs_columns != rhs_columns):
+    if lhs_rows != rhs_rows or lhs_columns != rhs_columns:
         return False
     for i in range(lhs_rows - 1):
-        if (lhs._rows[i][1] != rhs._rows[i][1]):
+        if lhs._rows[i][1] != rhs._rows[i][1]:
             return False
-        if (lhs._rows[i][3] != rhs._rows[i][3]):
+        if lhs._rows[i][3] != rhs._rows[i][3]:
             return False
     return True
 
@@ -890,7 +907,8 @@ def sort_func(table):
     # 获取 PrettyTable 的列数
     num_columns = len(table.field_names)
     # print(float(table[num_rows-1][num_columns-1]))
-    return float(table._rows[num_rows-1][num_columns-1])
+    return float(table._rows[num_rows - 1][num_columns - 1])
+
 
 def cal_error(table):
     num_rows = len(table._rows)
@@ -898,7 +916,7 @@ def cal_error(table):
     lhs = table._rows[num_rows - 1][2]
     rhs = table._rows[num_rows - 1][4]
     return float(rhs) - float(lhs)
-    
+
 
 def add_column(table, column_name, content):
     num_rows = len(table._rows)
@@ -908,6 +926,7 @@ def add_column(table, column_name, content):
         contents.append("")
     contents.append(content)
     table.add_column(column_name, contents)
+
 
 def gen_module_compare_tables(analyzer1, analyzer2):
     """
@@ -924,7 +943,9 @@ def gen_module_compare_tables(analyzer1, analyzer2):
     error_list = []
     for table in table_list:
         if len(count_list) != len(non_duplicate_table_list):
-            Logger.error("The number of count_list is not the same as non_duplicate_table_list")
+            Logger.error(
+                "The number of count_list is not the same as non_duplicate_table_list"
+            )
         find_flag = False
         error = cal_error(table)
         for index in range(len(non_duplicate_table_list)):
@@ -934,18 +955,22 @@ def gen_module_compare_tables(analyzer1, analyzer2):
                 count_list[index] += 1
                 error_list[index] += error
                 break
-        
+
         if not find_flag:
             count_list.append(1)
             error_list.append(error)
             non_duplicate_table_list.append(table)
-                
+
     for index in range(len(non_duplicate_table_list)):
         add_column(non_duplicate_table_list[index], "count", count_list[index])
-        add_column(non_duplicate_table_list[index], "Total Error(ms)", error_list[index])
-    
-    non_duplicate_table_list = sorted(non_duplicate_table_list, key=sort_func, reverse=True)
-    return non_duplicate_table_list 
+        add_column(
+            non_duplicate_table_list[index], "Total Error(ms)", error_list[index]
+        )
+
+    non_duplicate_table_list = sorted(
+        non_duplicate_table_list, key=sort_func, reverse=True
+    )
+    return non_duplicate_table_list
 
 
 def gen_module_compare_table_str(analyzer1, analyzer2):

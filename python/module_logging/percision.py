@@ -3,6 +3,7 @@ import torch
 import os
 from logging import Logger
 
+
 class PercisionDebugger:
     """
     insert delimiters before and and after op execution
@@ -26,7 +27,17 @@ class PercisionDebugger:
         self.name_dict = {}
         self.saved = []
 
-    def config(self, model,  path="/tmp/", steps=None, ranks=[], fw_input=True, fw_output=True, bk_input=True, bk_output=True):
+    def config(
+        self,
+        model,
+        path="/tmp/",
+        steps=None,
+        ranks=[],
+        fw_input=True,
+        fw_output=True,
+        bk_input=True,
+        bk_output=True,
+    ):
         if isinstance(model, list):
             assert len(model) == 1, "only support single model"
             self.model = model[0]
@@ -39,11 +50,11 @@ class PercisionDebugger:
 
         if steps is not None:
             self.record_steps = steps
-        
-        self.fw_input=fw_input
-        self.fw_output=fw_output
-        self.bk_input=bk_input
-        self.bk_output=bk_output
+
+        self.fw_input = fw_input
+        self.fw_output = fw_output
+        self.bk_input = bk_input
+        self.bk_output = bk_output
 
     def is_active(self):
         return self.rank in self.ranks and self.step in self.record_steps
@@ -53,26 +64,44 @@ class PercisionDebugger:
             if not self.is_active():
                 return
 
-            index =0
+            index = 0
             if isinstance(input, tuple):
                 for t in input:
                     if not isinstance(t, torch.Tensor):
                         continue
-                    input_name = "step_" + str(self.step) + "_" + module_name + "_forward_input_" + str(index)
+                    input_name = (
+                        "step_"
+                        + str(self.step)
+                        + "_"
+                        + module_name
+                        + "_forward_input_"
+                        + str(index)
+                    )
                     if input_name in self.saved:
                         print("duplicate key: {}".format(input_name))
                         continue
                     print("save module input: {}".format(input_name))
-                    self.h5f.create_dataset(input_name, data=t.cpu().float().detach().numpy())
+                    self.h5f.create_dataset(
+                        input_name, data=t.cpu().float().detach().numpy()
+                    )
                     self.saved.append(input_name)
                     index += 1
             elif isinstance(input, torch.Tensor):
-                input_name = "step_" + str(self.step) + "_" + module_name + "_forward_input_" + str(index)
+                input_name = (
+                    "step_"
+                    + str(self.step)
+                    + "_"
+                    + module_name
+                    + "_forward_input_"
+                    + str(index)
+                )
                 if input_name in self.saved:
                     print("duplicate key: {}".format(input_name))
                     return
                 print("save module input: {}".format(input_name))
-                self.h5f.create_dataset(input_name, data=input.cpu().float().detach().numpy())
+                self.h5f.create_dataset(
+                    input_name, data=input.cpu().float().detach().numpy()
+                )
                 self.saved.append(input_name)
 
         return pre_forward_hook
@@ -84,23 +113,41 @@ class PercisionDebugger:
             index = 0
             if isinstance(output, tuple):
                 for t in output:
-                    output_name = "step_" + str(self.step) + "_" +  module_name + "_forward_output_" + str(index)
+                    output_name = (
+                        "step_"
+                        + str(self.step)
+                        + "_"
+                        + module_name
+                        + "_forward_output_"
+                        + str(index)
+                    )
                     if output_name in self.saved:
                         print("duplicate key: {}".format(output_name))
                         continue
                     if not isinstance(t, torch.Tensor):
                         continue
                     print("save module output: {}".format(output_name))
-                    self.h5f.create_dataset(output_name, data=t.cpu().float().detach().numpy())
+                    self.h5f.create_dataset(
+                        output_name, data=t.cpu().float().detach().numpy()
+                    )
                     self.saved.append(output_name)
                     index += 1
             elif isinstance(output, torch.Tensor):
-                output_name = "step_" + str(self.step) + "_" + module_name + "_forward_output_" + str(index)
+                output_name = (
+                    "step_"
+                    + str(self.step)
+                    + "_"
+                    + module_name
+                    + "_forward_output_"
+                    + str(index)
+                )
                 if output_name in self.saved:
                     print("duplicate key: {}".format(output_name))
                     return
                 print("save module output: {}".format(output_name))
-                self.h5f.create_dataset(output_name, data=output.cpu().float().detach().numpy())
+                self.h5f.create_dataset(
+                    output_name, data=output.cpu().float().detach().numpy()
+                )
                 self.saved.append(output_name)
             else:
                 # print("unsupported output type: ")
@@ -117,7 +164,14 @@ class PercisionDebugger:
             index = 0
             if isinstance(grad_output, tuple):
                 for t in grad_output:
-                    input_name = "step_" + str(self.step) + "_" + module_name + "_backward_input_" + str(index)
+                    input_name = (
+                        "step_"
+                        + str(self.step)
+                        + "_"
+                        + module_name
+                        + "_backward_input_"
+                        + str(index)
+                    )
                     if input_name in self.saved:
                         # print("duplicate key: {}".format(input_name))
                         print("duplicate key: {}".format(input_name))
@@ -125,16 +179,27 @@ class PercisionDebugger:
                     if t is None or not isinstance(t, torch.Tensor):
                         continue
                     print("save module grad_output: {}".format(input_name))
-                    self.h5f.create_dataset(input_name, data=t.cpu().float().detach().numpy())
+                    self.h5f.create_dataset(
+                        input_name, data=t.cpu().float().detach().numpy()
+                    )
                     self.saved.append(input_name)
                     index += 1
             elif isinstance(grad_output, torch.Tensor):
-                input_name = "step_" + str(self.step) + "_" + module_name + "_backward_input_" + str(index)
+                input_name = (
+                    "step_"
+                    + str(self.step)
+                    + "_"
+                    + module_name
+                    + "_backward_input_"
+                    + str(index)
+                )
                 if input_name in self.saved:
                     print("duplicate key: {}".format(input_name))
                     return
                 print("save module grad_output: {}".format(input_name))
-                self.h5f.create_dataset(input_name, data=grad_output.cpu().float().detach().numpy())
+                self.h5f.create_dataset(
+                    input_name, data=grad_output.cpu().float().detach().numpy()
+                )
                 self.saved.append(input_name)
 
         return pre_backward_hook
@@ -146,7 +211,14 @@ class PercisionDebugger:
             index = 0
             if isinstance(grad_input, tuple):
                 for t in grad_input:
-                    output_name = "step_" + str(self.step) + "_" + module_name + "_backward_output_" + str(index)
+                    output_name = (
+                        "step_"
+                        + str(self.step)
+                        + "_"
+                        + module_name
+                        + "_backward_output_"
+                        + str(index)
+                    )
                     if output_name in self.saved:
                         # print("duplicate key: {}".format(output_name))
                         print("duplicate key: {}".format(output_name))
@@ -154,16 +226,27 @@ class PercisionDebugger:
                     if t is None or not isinstance(t, torch.Tensor):
                         continue
                     print("save module grad_input: {}".format(output_name))
-                    self.h5f.create_dataset(output_name, data=t.cpu().float().detach().numpy())
+                    self.h5f.create_dataset(
+                        output_name, data=t.cpu().float().detach().numpy()
+                    )
                     self.saved.append(output_name)
                     index += 1
             elif isinstance(grad_input, torch.Tensor):
-                output_name = "step_" + str(self.step) + "_" + module_name + "backward_output_" + str(index)
+                output_name = (
+                    "step_"
+                    + str(self.step)
+                    + "_"
+                    + module_name
+                    + "backward_output_"
+                    + str(index)
+                )
                 if output_name in self.saved:
                     print("duplicate key: {}".format(output_name))
                     return
                 print("save module grad_input: {}".format(output_name))
-                self.h5f.create_dataset(output_name, data=grad_input.cpu().float().detach().numpy())
+                self.h5f.create_dataset(
+                    output_name, data=grad_input.cpu().float().detach().numpy()
+                )
                 self.saved.append(output_name)
 
         return post_backward_hook
@@ -171,10 +254,14 @@ class PercisionDebugger:
     def save_forward_input(self, module_name=None):
         for name, module in self.model.named_modules():
             if module_name is None:
-                handle = module.register_forward_pre_hook(self.pre_forward_hook_wrapper(name))
+                handle = module.register_forward_pre_hook(
+                    self.pre_forward_hook_wrapper(name)
+                )
                 self.forward_input_hook_handles.append(handle)
             elif module_name in name:
-                handle = module.register_forward_pre_hook(self.pre_forward_hook_wrapper(name))
+                handle = module.register_forward_pre_hook(
+                    self.pre_forward_hook_wrapper(name)
+                )
                 self.forward_input_hook_handles.append(handle)
 
     def remove_forward_input(self):
@@ -184,10 +271,14 @@ class PercisionDebugger:
     def save_forward_output(self, module_name=None):
         for name, module in self.model.named_modules():
             if module_name is None:
-                handle = module.register_forward_hook(self.post_forward_hook_wrapper(name))
+                handle = module.register_forward_hook(
+                    self.post_forward_hook_wrapper(name)
+                )
                 self.forward_output_hook_handles.append(handle)
             elif module_name in name:
-                handle = module.register_forward_hook(self.post_forward_hook_wrapper(name))
+                handle = module.register_forward_hook(
+                    self.post_forward_hook_wrapper(name)
+                )
                 self.forward_output_hook_handles.append(handle)
 
     def remove_forward_output(self):
@@ -197,10 +288,14 @@ class PercisionDebugger:
     def save_backward_input(self, module_name=None):
         for name, module in self.model.named_modules():
             if module_name is None:
-                handle = module.register_full_backward_pre_hook(self.pre_backward_hook_wrapper(name))
+                handle = module.register_full_backward_pre_hook(
+                    self.pre_backward_hook_wrapper(name)
+                )
                 self.backward_input_hook_handles.append(handle)
             elif module_name in name:
-                handle = module.register_full_backward_pre_hook(self.pre_backward_hook_wrapper(name))
+                handle = module.register_full_backward_pre_hook(
+                    self.pre_backward_hook_wrapper(name)
+                )
                 self.backward_input_hook_handles.append(handle)
 
     def remove_backward_input(self):
@@ -210,10 +305,14 @@ class PercisionDebugger:
     def save_backward_output(self, module_name=None):
         for name, module in self.model.named_modules():
             if module_name is None:
-                handle = module.register_full_backward_hook(self.post_backward_hook_wrapper(name))
+                handle = module.register_full_backward_hook(
+                    self.post_backward_hook_wrapper(name)
+                )
                 self.backward_output_hook_handles.append(handle)
             elif module_name in name:
-                handle = module.register_full_backward_hook(self.post_backward_hook_wrapper(name))
+                handle = module.register_full_backward_hook(
+                    self.post_backward_hook_wrapper(name)
+                )
                 self.backward_output_hook_handles.append(handle)
 
     def remove_backward_output(self):
@@ -234,7 +333,9 @@ class PercisionDebugger:
                 if param.grad is None or not isinstance(param, torch.Tensor):
                     continue
                 print("save weight: {}".format(param_name))
-                self.h5f.create_dataset(param_name, data=param.cpu().float().detach().numpy())
+                self.h5f.create_dataset(
+                    param_name, data=param.cpu().float().detach().numpy()
+                )
                 self.saved.append(param_name)
 
     def save_grads(self):
@@ -249,7 +350,9 @@ class PercisionDebugger:
                 if not isinstance(param.grad, torch.Tensor):
                     continue
                 print("save module grad: {}".format(param_name))
-                self.h5f.create_dataset(param_name, data=param.grad.cpu().float().detach().numpy())
+                self.h5f.create_dataset(
+                    param_name, data=param.grad.cpu().float().detach().numpy()
+                )
                 self.saved.append(param_name)
 
     def save_tensor(self, tensor, name):
@@ -271,7 +374,7 @@ class PercisionDebugger:
             return
         print("Begin Persion Dump, rank: {}".format(self.rank))
         if self.h5f is None:
-            self.h5f = h5py.File(self.path, 'w')
+            self.h5f = h5py.File(self.path, "w")
             print("open file: {}".format(self.path))
 
         if self.fw_input:
@@ -291,7 +394,7 @@ class PercisionDebugger:
         if self.h5f is not None:
             self.h5f.close()
             self.h5f = None
-        print('close file: {}'.format(self.path))
+        print("close file: {}".format(self.path))
 
         if len(self.forward_input_hook_handles) > 0:
             self.remove_forward_input()
@@ -301,9 +404,10 @@ class PercisionDebugger:
             self.remove_backward_input()
         if len(self.backward_output_hook_handles) > 0:
             self.remove_backward_output()
-        print('remove hooks')
+        print("remove hooks")
 
         print("persion debugger exit")
+
     def is_not_active_rank(self):
         return self.rank not in self.ranks
 
