@@ -6,6 +6,8 @@ from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
 from . import config
 from functools import partial
+import threading
+from .logging import Logger
 
 cpp_extend = config.get_config("database", "cpp_extend")
 if cpp_extend == "True":
@@ -20,23 +22,29 @@ def get_module_index():
     MODULE_COUNTER += 1
     return MODULE_COUNTER
 
+
 TENSOR_FUNCS_NO_DISPATCH = [
     # Can't convert Stream argument to Python object
-    'record_stream'
+    "record_stream"
 ]
+
 
 class TorchFuncMockNoDispatch:
     """
     Wraps a method to call it without the custom
     pytorch dispatcher
     """
+
     def __init__(self, pt_impl):
         self.pt_impl = pt_impl
+
     def __get__(self, obj, c):
         return partial(self, obj)
+
     def __call__(self, obj, *args, **kwargs):
         with _pop_mode_temporarily():
             return self.pt_impl(obj, *args, **kwargs)
+
 
 class PerformanceLogger(TorchDispatchMode):
     """
@@ -45,10 +53,16 @@ class PerformanceLogger(TorchDispatchMode):
 
     def __init__(self, model=None, profiling_bw=True) -> None:
         super().__init__()
-        enable_prof_env = os.environ.get('ENABLE_PROFILING', None)
+        self.counter = 0
+        self.rank = os.getpid()
+        self.tid = threading.get_ident()
+        self.lock = threading.Lock()
+        enable_prof_env = os.environ.get("ENABLE_PROFILING", None)
         self.enable_profiling = False
         if enable_prof_env is not None:
-            self.enable_profiling = enable_prof_env == 'True' or enable_prof_env == 'true'
+            self.enable_profiling = (
+                enable_prof_env == "True" or enable_prof_env == "true"
+            )
 
         self.profiling_bw = profiling_bw
         # traverse modules and register forward and backward hooks for each
@@ -66,6 +80,7 @@ class PerformanceLogger(TorchDispatchMode):
         # for gpu profilig with cpp extension, for xpu profiling is not necessary
         if config.cpp_extend():
             from . import Hook
+
             Hook.install_hook()
 
     def config(self, model=None, profiling_bw=True):
@@ -90,7 +105,7 @@ class PerformanceLogger(TorchDispatchMode):
             self._pt_impls[k] = impl
             setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
-    
+
     def __exit__(self, exc_type=None, exc_value=None, traceback=None):
         print("Exit performance logger...")
         if config.cpp_extend():
@@ -164,19 +179,34 @@ class PerformanceLogger(TorchDispatchMode):
             module.register_full_backward_hook(self.post_backward_hook_wrapper(name))
 
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
+        self.lock.acquire()
         if kwargs is None:
             kwargs = {}
         if self.enable_profiling:
             torch.cuda.synchronize()
             #  insert pre-op delimiter
             print("[START_SYMBOL]: {}".format(str(op)), flush=True)
+            # for debug
+            Logger.debug(
+                "[START_SYMBOL]: {}, counter: {}, pid: {}, tid: {}".format(
+                    str(op), self.counter, os.getpid(), threading.get_ident()
+                )
+            )
             # call op
             output = op(*args, **kwargs)
             torch.cuda.synchronize()
             #  insert after-op delimiter
             print("[END_SYMBOL]: {}".format(str(op)), flush=True)
+            # for debug
+            Logger.debug(
+                "[END_SYMBOL]: {}, counter: {}, pid: {}, tid: {}".format(
+                    str(op), self.counter, os.getpid(), threading.get_ident()
+                )
+            )
+            self.counter += 1
         else:
             return op(*args, **kwargs)
+        self.lock.release()
         return output
 
 
