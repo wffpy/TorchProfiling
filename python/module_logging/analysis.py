@@ -442,7 +442,7 @@ class AtenOpAnalyzer(Analyzer):
                 Logger.debug("Op Time")
                 Logger.debug(line)
                 extention_op_time = float(line.split(" ")[-2]) / 1000000
-                extention_op_name = demangle(line.split(" ")[-6])
+                extention_op_name = demangle(line.split(" ")[2])
                 self.current_op = AtenOp(extention_op_name, self.current_m_name)
                 self.current_op.set_time(extention_op_time)
                 self.op_or_module.append(self.current_op)
