@@ -319,6 +319,7 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 CUstream hStream,
                                 void **kernelParams,
                                 void **extra) {
+    trace::Tracer tracer(__FUNCTION__);
     cudaDeviceSynchronize();
     CUresult ret = Target_cuLaunchKernel(f, 
                                 gridDimX,
