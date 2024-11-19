@@ -22,7 +22,7 @@ jobs:
     - name: build and install
       run: |
         pip install -r requirements.txt
-        bash script/build.sh
+        bash script/build_regular.sh
 
     - name: run tests
       run: |
