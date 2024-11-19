@@ -7,7 +7,8 @@ import re
 from typing_extensions import Self
 from xml.etree.ElementTree import C14NWriterTarget
 import prettytable as pt
-from .logging import Logger
+# from .logging import Logger
+from ..utils.logging import Logger
 from enum import Enum, auto
 from textwrap import fill
 import subprocess

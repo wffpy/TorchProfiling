@@ -1,11 +1,11 @@
 import os
 import configparser
-from .logging import Logger
+from ..utils.logging import Logger
 
 config = configparser.ConfigParser()
 current_file_dir = os.path.dirname(os.path.abspath(__file__))
 if os.path.exists(current_file_dir + "/config.ini"):
-    Logger.info("config.ini found")
+    Logger.info("config.ini found, {}".format(current_file_dir + "/config.ini"))
 else:
     Logger.error("config.ini found")
 config.read(current_file_dir + "/config.ini")

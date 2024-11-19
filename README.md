@@ -41,12 +41,12 @@ m = model()
 import module_logging as ml
 
 m = model
-with ml.logger.PerformanceLogger(m):
+with ml.PerformanceLogger(m):
     m()
 ```
 
 ```
-from  module_logging import logger.PerformanceLogger as PL
+from  module_logging import PerformanceLogger as PL
 pl = PL()
 m = model()
 pl.config(model=m)

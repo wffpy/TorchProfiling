@@ -7,11 +7,11 @@ from contextlib import contextmanager
 from . import config
 from functools import partial
 import threading
-from .logging import Logger
+from ..utils.logging import Logger
 
 cpp_extend = config.get_config("database", "cpp_extend")
 if cpp_extend == "True":
-    from . import Hook
+    from .. import Hook
 
 MODULE_COUNTER = 0
 print_rank = int(os.environ.get("PRINT_RANK", 0))
@@ -79,7 +79,7 @@ class PerformanceLogger(TorchDispatchMode):
 
         # for gpu profilig with cpp extension, for xpu profiling is not necessary
         if config.cpp_extend():
-            from . import Hook
+            from .. import Hook
 
             Hook.install_hook()
 

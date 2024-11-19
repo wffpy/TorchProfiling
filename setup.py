@@ -10,8 +10,9 @@ import configparser
 import sysconfig
 
 # 读取配置文件
+config_path = "python/module_logging/perf/config.ini"
 config = configparser.ConfigParser()
-config.read("python/module_logging/config.ini")
+config.read(config_path)
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -130,11 +131,11 @@ if __name__ == "__main__":
     compile_option = os.environ.get("COMPIEL_OPTION")
     if compile_option is not None:
         config["database"]["cpp_extend"] = "False"
-        with open("python/module_logging/config.ini", "w") as configfile:
+        with open(config_path, "w") as configfile:
             config.write(configfile)
         regular_setup()
     else:
         config["database"]["cpp_extend"] = "True"
-        with open("python/module_logging/config.ini", "w") as configfile:
+        with open(config_path, "w") as configfile:
             config.write(configfile)
         cpp_extend_setup()

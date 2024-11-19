@@ -4,8 +4,7 @@ from asyncore import write
 import pathlib
 import sys
 
-# from .analysis_xpu_log import parse_log as parse_xpu_log
-from .analysis import (
+from ..perf.analysis import (
     AtenOpAnalyzer,
     DistAnalyzer,
     gen_module_compare_tables,
@@ -13,10 +12,7 @@ from .analysis import (
 )
 import prettytable as pt
 from .cut_log import extract_section
-from .compare_persion import compare
-
-# import analysis_gpu_log
-# import analysis_xpu_log
+from ..percision.compare_persion import compare
 
 
 def parse_args():

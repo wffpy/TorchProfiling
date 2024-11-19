@@ -8,7 +8,7 @@ rank = os.getenv("RANK", "0")
 
 cpp_extend = config.get_config("database", "cpp_extend")
 if cpp_extend == "True":
-    from . import Hook
+    from .. import Hook
 
 
 from typing import Any, Callable, Dict, Optional, Tuple, Union, List

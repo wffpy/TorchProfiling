@@ -19,3 +19,8 @@ cd ${project_dir}
 python setup.py bdist_wheel
 
 ls -thl dist
+
+echo -e "Y" | pip uninstall module_logging
+
+echo "=========install new package=============="
+pip install dist/module_logging-1.0.0-cp38-cp38-linux_x86_64.whl
