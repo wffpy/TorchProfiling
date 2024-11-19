@@ -13,3 +13,5 @@ export COMPIEL_OPTION=True
 python setup.py bdist_wheel
 
 ls -thl dist
+
+pip install dist/module_logging-1.0.0-py3-none-any.whl
