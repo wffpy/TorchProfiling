@@ -21,8 +21,8 @@ jobs:
 
     - name: build and install
       run: |
-        bash script/build.sh
         pip install -r requirements.txt
+        bash script/build.sh
 
     - name: run tests
       run: |
