@@ -2,9 +2,9 @@ name: TorchProfiling CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "dev0" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "dev0" ]
 
 jobs:
   build:
