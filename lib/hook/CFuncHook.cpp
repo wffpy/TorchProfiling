@@ -88,8 +88,9 @@ PltInfoVec collect_plt() {
     return plt_info_vec;
 }
 
-void install_hook() {
+void install_hook(HookType category) {
     static HookRegistrar *reg = HookRegistrar::instance();
+    reg->set_current_category(category);
     static int64_t counter = 0;
     if (counter > 0) return;
     // the following code just execute once
@@ -125,14 +126,25 @@ void install_hook() {
     }
 }
 
-HookRegistrar::HookRegistrar() : hook_num_(0) {}
+HookRegistrar::HookRegistrar() : hook_num_(0), current_category_(HookType::kNONE) {}
 
-void HookRegistrar::register_hook(HookInfo hook) {
-    hooks_.push_back(std::make_shared<HookInfo>(hook));
+void HookRegistrar::register_hook(const HookType& category, HookInfo hook) {
+    hooks_[category].push_back(std::make_shared<HookInfo>(hook));
     hook_num_++;
 }
 
-HookList HookRegistrar::get_hooks() const { return hooks_; }
+void HookRegistrar::set_current_category(HookType category) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    current_category_ = category;
+}
+
+const HookList HookRegistrar::get_hooks() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    if (current_category_ == HookType::kNONE) {
+        return {};
+    }
+    return hooks_.at(current_category_);
+}
 
 HookRegistrar *HookRegistrar::instance() {
     static HookRegistrar *inst = new HookRegistrar();
@@ -140,7 +152,8 @@ HookRegistrar *HookRegistrar::instance() {
 }
 
 void HookRegistrar::try_get_origin_func(std::string lib_name) {
-    for (auto hook_ptr : hooks_) {
+    auto hooks = get_hooks();
+    for (auto hook_ptr : hooks) {
         if (*(hook_ptr->origin_func) == nullptr) {
             LOG() << "hook func name: " << hook_ptr->sym_name;
             void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
@@ -158,10 +171,10 @@ void HookRegistrar::try_get_origin_func(std::string lib_name) {
     }
 }
 
-HookRegistration::HookRegistration(std::string name, void *new_func,
+HookRegistration::HookRegistration(HookType category, std::string name, void *new_func,
                                    void **old_func) {
     static HookRegistrar *reg = HookRegistrar::instance();
-    reg->register_hook(HookInfo{name, new_func, old_func});
+    reg->register_hook(category, HookInfo{name, new_func, old_func});
 }
 
 

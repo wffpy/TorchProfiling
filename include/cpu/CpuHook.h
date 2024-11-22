@@ -25,6 +25,7 @@ namespace cpu_hook {
 // typedef utils::Singleton<CpuHookWrapper> SingletonCpuHookWrapper;
 
 void register_cpu_hook();
+void register_dump_hook();
 
 }   // namespace cpu_hook
 #endif

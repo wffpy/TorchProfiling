@@ -1,1 +1,1 @@
-add_library(CpuHook STATIC CpuHook.cpp)
+add_library(CpuHook STATIC CpuHook.cpp DumpHook.cpp)

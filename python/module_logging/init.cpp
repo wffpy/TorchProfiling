@@ -11,10 +11,13 @@
 namespace py = pybind11;
 
 void init_hook(pybind11::module& m) {
-    m.def("install_hook", []() {
+    m.def("install_hook", [](cfunc_hook::HookType hook_category) {
+        // the following three funcs do nothing
         cpu_hook::register_cpu_hook();
+        cpu_hook::register_dump_hook();
         gpu_profiler::register_gpu_hook();
-        cfunc_hook::install_hook();
+
+        cfunc_hook::install_hook(hook_category);
         local_hook::install_local_hooks();
     });
 
@@ -75,5 +78,10 @@ void init_hook(pybind11::module& m) {
 }
 
 PYBIND11_MODULE(Hook, m) {
+    py::enum_<cfunc_hook::HookType>(m, "HookType")
+        .value("kNONE", cfunc_hook::HookType::kNONE)
+        .value("kDUMP", cfunc_hook::HookType::kDUMP)
+        .value("kPROFILE", cfunc_hook::HookType::kPROFILE)
+        .export_values();
     init_hook(m);
 }
