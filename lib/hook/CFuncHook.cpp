@@ -155,7 +155,7 @@ void HookRegistrar::try_get_origin_func(std::string lib_name) {
     auto hooks = get_hooks();
     for (auto hook_ptr : hooks) {
         if (*(hook_ptr->origin_func) == nullptr) {
-            LOG() << "hook func name: " << hook_ptr->sym_name;
+            DLOG() << "hook func name: " << hook_ptr->sym_name;
             void *handle = dlopen(lib_name.c_str(), RTLD_LAZY);
             void *func_ptr = dlsym(handle, hook_ptr->sym_name.c_str());
             if (func_ptr != nullptr) {
