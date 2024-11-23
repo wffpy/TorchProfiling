@@ -22,6 +22,12 @@ else ()
     message(STATUS "CUDA is not enabled")
 endif()
 
+if (XPU_DEV)
+    message("XPU_DEB: ${XPU_DEV}")
+    find_library(XPU_LIB xpurt PATHS /usr/local/xcudart/lib)
+    message("XPU_LIB: ${XPU_LIB}")
+endif()
+
 find_package(Python3 REQUIRED Interpreter COMPONENTS Development)
 find_package(PythonInterp REQUIRED)
 

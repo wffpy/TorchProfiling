@@ -25,7 +25,8 @@ namespace cpu_hook {
 // typedef utils::Singleton<CpuHookWrapper> SingletonCpuHookWrapper;
 
 void register_cpu_hook();
-void register_dump_hook();
+// void register_dump_hook();
+// void record_tensor(const uint64_t ptr, int64_t size);
 
 }   // namespace cpu_hook
 #endif

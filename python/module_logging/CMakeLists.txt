@@ -9,6 +9,7 @@ target_link_libraries(Hook PRIVATE CpuHook)
 target_link_libraries(Hook PRIVATE Util)
 target_link_libraries(Hook PRIVATE GpuHook)
 target_link_libraries(Hook PRIVATE LocalHook)
+target_link_libraries(Hook PRIVATE Dump)
 
 target_link_libraries(Hook PRIVATE capstone)
 
@@ -23,6 +24,10 @@ if ((CUDA_DEV STREQUAL TRUE) AND CUDA_FOUND)
     target_link_libraries(Hook PRIVATE cupti)
     target_link_libraries(Hook PRIVATE cudart)
     target_link_libraries(Hook PRIVATE cuda)
+endif()
+
+if (XPU_DEV STREQUAL TRUE)
+    target_link_libraries(Hook PRIVATE ${XPU_LIB})
 endif()
 
 
