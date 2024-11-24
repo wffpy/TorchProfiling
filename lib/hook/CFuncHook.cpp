@@ -95,8 +95,9 @@ void install_hook(HookType category) {
     if (counter > 0) return;
     // the following code just execute once
     counter += 1;
-    LOG() << "hook num: " << reg->get_hook_num();
     auto plt_info_vec = collect_plt();
+    auto hooks = reg->get_hooks();
+    LOG() << "hook num: " << hooks.size();
     for (auto &plt_info : plt_info_vec) {
         int relaEntryCount = plt_info.pltrelsz / sizeof(ElfW(Rela));
         for (int i = 0; i < relaEntryCount; i++) {
@@ -109,7 +110,8 @@ void install_hook(HookType category) {
             if (iter != std::string::npos) {
                 continue;
             }
-            for (auto hook_info : reg->get_hooks()) {
+
+            for (auto hook_info : hooks) {
                 if (std::string(name) == hook_info->sym_name) {
                     // TODO: 暂时只hook了 xpu 库中的函数
                     if (hook_info->sym_name == "fprintf" && lib_name.find("xpu") == std::string::npos) {
@@ -124,6 +126,7 @@ void install_hook(HookType category) {
             }
         }
     }
+    LOG() << "hook funcs done!"; 
 }
 
 HookRegistrar::HookRegistrar() : hook_num_(0), current_category_(HookType::kNONE) {}

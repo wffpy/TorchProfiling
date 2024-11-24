@@ -10,7 +10,6 @@ from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporaril
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
 from functools import partial
-import prettytable as pt
 import traceback
 import threading
 
@@ -173,7 +172,6 @@ class TensorInfoRecorder(TorchDispatchMode):
                 input_tensors.append(kwargs[key])
 
         from .. import Hook
-
         for i in range(len(input_tensors)):
             cur_tensor = input_tensors[i]
             Hook.record_tensor(

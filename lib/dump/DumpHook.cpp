@@ -2,12 +2,9 @@
 
 #include "cpu/CpuHook.h"
 #include "hook/CFuncHook.h"
-#include "utils/BackTrace.h"
 #include "utils/Utils.h"
 #include "utils/Log/Log.h"
-#include "hook/LocalHook/LocalHook.h"
 #include "utils/Timer/Timer.h"
-#include "utils/Recorder/Recorder.h"
 #include <stdarg.h>
 #include <cxxabi.h>
 #include <regex>
@@ -167,7 +164,6 @@ public:
     }
     LaunchInfo(std::string func_name);
     ~LaunchInfo() {}
-    // void add_arg(void* arg);
     std::string to_string(const TensorMap& tensor_map, const int64_t cap_index) const;
     void set_func_name(std::string func_name);
     void copy_args(const void* params, int64_t size, int64_t offset);
@@ -276,7 +272,7 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
 
 class CircularQueue {
 public:
-    CircularQueue(int64_t cap = 10);
+    CircularQueue(int64_t cap = 1000);
     ~CircularQueue();
     void enqueue_params(const void* params, int64_t size, int64_t offset);
     void enqueue_name(std::string name);
@@ -374,19 +370,20 @@ int DumpHookWrapper::local_launch_async(void* func) {
     auto xpu_func = static_cast<xpu_kernel*>(func);
     auto cqueue = SingletonCircularQueue::instance().get_elem();
     const char* mangled_name = xpu_func->name;
-    // LOG() << "mangled name: " << mangled_name;
+    DLOG() << "local launch async begin: " << mangled_name;
 
     cqueue->enqueue_name(mangled_name);
 
+    int s = 0;
     auto wrapper_instance = SingletonDumpHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_launch_async_ != nullptr) {
-        int s = wrapper_instance->origin_launch_async_(func);
+        s = wrapper_instance->origin_launch_async_(func);
         if (s != 0) {
             SingletonCircularQueue::instance().get_elem()->set_print_flag(true);
         }
-        return s;
     }
-    return 0;
+    DLOG() << "local launch async end: " << mangled_name;
+    return s;
 }
 
 REGISTERHOOK(
@@ -400,11 +397,12 @@ int DumpHookWrapper::local_launch_arg_set(const void* arg, size_t size, size_t o
     auto cqueue = SingletonCircularQueue::instance().get_elem();
     cqueue->enqueue_params(const_cast<void*>(arg), size, offset);
 
+    int s = 0;
     auto wrapper_instance = SingletonDumpHookWrapper::instance().get_elem();
     if (wrapper_instance->origin_launch_arg_set_ != nullptr) {
-        return wrapper_instance->origin_launch_arg_set_(arg, size, offset);
+        s = wrapper_instance->origin_launch_arg_set_(arg, size, offset);
     }
-    return 0;
+    return s;
 }
 
 REGISTERHOOK(
