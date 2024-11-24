@@ -41,7 +41,7 @@ bool get_dump_env() {
 int64_t get_cap() {
     const char* cap_str = std::getenv("LAUNCH_CAP_NUM");
     if (cap_str == nullptr) {
-        return 10;
+        return 256;
     }
     int64_t cap = std::stoi(cap_str);
     return cap;
@@ -160,7 +160,7 @@ std::vector<std::string> extractParameterTypes(const std::string& demangled) {
 class LaunchInfo {
 public:
     LaunchInfo() {
-        params_.resize(128);
+        params_.resize(256);
     }
     LaunchInfo(std::string func_name);
     ~LaunchInfo() {}
@@ -175,7 +175,7 @@ private:
 };
 
 LaunchInfo::LaunchInfo(std::string func_name) : func_name_(func_name) {
-    params_.resize(128);
+    params_.resize(256);
 }
 
 void LaunchInfo::set_func_name(std::string func_name) {
@@ -184,8 +184,19 @@ void LaunchInfo::set_func_name(std::string func_name) {
 
 void LaunchInfo::copy_args(const void* params, int64_t size, int64_t offset) {
     void* data_ptr = params_.data();
+    int64_t bytes = params_.size() * 4;
+    if (offset > bytes|| offset + size > bytes) {
+        return;
+    }
+
     std::memmove(data_ptr + offset, params, size);
     size_ = size;
+}
+
+std::string int_to_hex_str(int64_t val) {
+    std::stringstream ss;
+    ss << "0x" << std::hex << val;
+    return ss.str();
 }
 
 std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap_index) const {
@@ -197,7 +208,8 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
     int64_t index = 0;
     int64_t pos = 0;
     for (auto type : param_types) {
-        LOG() << "param type: " << type;
+        // LOG() << "param type: " << type;
+        str += "param type: " + type + "\n";
         auto parsed_type = parseType(type);
         DLOG() << "  base_type: " << parsed_type.base_type;
         DLOG() << "  is_const: " << parsed_type.is_const;
@@ -207,7 +219,8 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
             char* cpu_ptr = ((char*)params_.data()) + pos;
             // input memory
             if (parsed_type.is_const) {
-                LOG() << "input memory " << index << ": " << std::hex << *((int64_t*)cpu_ptr);
+                // LOG() << "input memory " << index << ": " << std::hex << *((int64_t*)cpu_ptr);
+                str += "input memory " + std::to_string(index) + ": " +  int_to_hex_str(*((int64_t*)cpu_ptr)) + "\n";
                 uint64_t dev_ptr = *((uint64_t*)cpu_ptr);
                 int64_t bytes = 0;
                 auto iter = tensor_map.find(dev_ptr);
@@ -233,30 +246,27 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
                         file.close();
                         LOG() << "save param to file: " << param_file_name;
                     }
-                    // if (parsed_type.base_type == "float") {
-                    //     // TODO: print tensor
-                    // } else if (parsed_type.base_type == "int" || parsed_type.base_type == "int32_t") {
-                    // } else if (parsed_type.base_type == "int64_t" || parsed_type.base_type == "long") {
-                    // } else if (parsed_type.base_type == "float16" || parsed_type.base_type == "bfloat16") {
-                    // }
-
                     free(host_data);
                 }
             } else {
-                LOG() << "output memory " << index << ": " << std::hex << *((int64_t*)cpu_ptr);
+                // LOG() << "output memory " << index << ": " << std::hex << *((int64_t*)cpu_ptr);
+                str += "output memory " + std::to_string(index) + ": " +  int_to_hex_str(*((int64_t*)cpu_ptr)) + "\n";
             }
             pos = pos + 8;
         } else if (parsed_type.base_type == "int64_t" || parsed_type.base_type == "long") {
             char* dev_ptr = ((char*)params_.data()) + pos;
-            LOG() << "input memory " << index << ": " << *((int64_t*)dev_ptr);
+            // LOG() << "input memory " << index << ": " << *((int64_t*)dev_ptr);
+            str += "input " + std::to_string(index) + ": " +  std::to_string(*((int64_t*)dev_ptr)) + "\n";
             pos = pos + 8;
         } else if (parsed_type.base_type == "int" || parsed_type.base_type == "int32_t" || parsed_type.base_type == "float") {
             if (parsed_type.base_type == "float") {
                 char* dev_ptr = ((char*)params_.data()) + pos;
-                LOG() << "input " << index << ": " << *((float*)dev_ptr);
+                // LOG() << "input " << index << ": " << *((float*)dev_ptr);
+                str += "input " + std::to_string(index) + ": " +  std::to_string(*((float*)dev_ptr))  + "\n";
             } else if (parsed_type.base_type == "int" || parsed_type.base_type == "int32_t") {
                 char* dev_ptr = ((char*)params_.data()) + pos;
-                LOG() << "input " << index << ": " << *((int32_t*)dev_ptr);
+                // LOG() << "input " << index << ": " << *((int32_t*)dev_ptr);
+                str += "input " + std::to_string(index) + ": " +  std::to_string(*((int32_t*)dev_ptr))  + "\n";
             }
             pos = pos + 4;
         } else if (parsed_type.base_type == "bfloat16" || parsed_type.base_type == "float16") {
@@ -264,7 +274,8 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
         } else if (parsed_type.base_type == "bool" || parsed_type.base_type == "int8_t") {
             pos = pos + 1;
         } else {
-            ELOG() << "not support type: " << parsed_type.base_type;
+            str +="not support type: " + parsed_type.base_type + "\n";
+            // LOG() << "not support type: " << parsed_type.base_type;
         }
         index += 1;
     }
@@ -274,7 +285,7 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
 
 class CircularQueue {
 public:
-    CircularQueue(int64_t cap = 1000);
+    CircularQueue(int64_t cap = 256);
     ~CircularQueue();
     void enqueue_params(const void* params, int64_t size, int64_t offset);
     void enqueue_name(std::string name);
@@ -325,15 +336,38 @@ std::shared_ptr<LaunchInfo> CircularQueue::getLaunchInfoPtr() {
     return queue[r_index];
 }
 
+std::string getCurrentTimeAsFileName() {
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::ostringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d_%H-%M-%S");
+    return ss.str();
+}
+
 void CircularQueue::flash() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    std::string file_name = "rank_" + std::to_string(get_rank_env()) + "_" + getCurrentTimeAsFileName() + ".txt";
+    std::ofstream outfile;
+    outfile.open(file_name);
+
     int64_t r_index = index_;
     int64_t real_cap = index_ > capacity ? capacity : index_;
     for (int64_t i = 0; i < real_cap; ++i) {
         int64_t r_index = (index_ - i - 1) % capacity;
         auto info = queue[r_index];
-        LOG() << "dump launch info: " << real_cap - i;
-        LOG() << info->to_string(tensor_map_, real_cap - i);
+        // LOG() << "dump launch info: " << real_cap - i;
+        // LOG() << info->to_string(tensor_map_, real_cap - i);
+        std::string result = "";
+        result += info->to_string(tensor_map_, real_cap - i);
+        result += "\n";
+
+        // 检查文件是否成功打开
+        if (!outfile.is_open()) {
+            LOG() << result;
+        }
+        outfile << result << std::endl;
     }
+    outfile.close();
 }
 
 void CircularQueue::record_tensor(const uint64_t ptr, int64_t size) {
