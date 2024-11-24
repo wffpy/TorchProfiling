@@ -11,7 +11,9 @@ target_link_libraries(Hook PRIVATE GpuHook)
 target_link_libraries(Hook PRIVATE LocalHook)
 target_link_libraries(Hook PRIVATE Dump)
 
-target_link_libraries(Hook PRIVATE capstone)
+if (USE_CAPSTONE STREQUAL TRUE)
+    target_link_libraries(Hook PRIVATE capstone)
+endif()
 
 target_include_directories(Hook PUBLIC ${Python3_INCLUDE_DIRS})
 

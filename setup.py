@@ -54,8 +54,10 @@ class CMakeBuild(build_ext):
             # '-DPYTHON_LIBRARY=' + os.environ.get('PYTHON_LIBRARY'),
             # f'-B {os.path.join(script_dir, "build")}',
         ]
+        # up to now, local hook is just used for cuda Profiling 
         if enable_cuda == "true":
             cmake_args.append("-DCUDA_DEV=TRUE")
+            cmake_args.append("-DUSE_CAPSTONE=TRUE")
         if enable_xpu == "true":
             cmake_args.append("-DXPU_DEV=TRUE")
 

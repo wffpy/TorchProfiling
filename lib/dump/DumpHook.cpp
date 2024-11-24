@@ -204,9 +204,9 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
         DLOG() << "  prointer_level: " << parsed_type.prointer_level;
         // memory ptr
         if (parsed_type.prointer_level > 0) {
+            char* cpu_ptr = ((char*)params_.data()) + pos;
             // input memory
             if (parsed_type.is_const) {
-                char* cpu_ptr = ((char*)params_.data()) + pos;
                 LOG() << "input memory " << index << ": " << std::hex << *((int64_t*)cpu_ptr);
                 uint64_t dev_ptr = *((uint64_t*)cpu_ptr);
                 int64_t bytes = 0;
@@ -242,6 +242,8 @@ std::string LaunchInfo::to_string(const TensorMap& tensor_map, const int64_t cap
 
                     free(host_data);
                 }
+            } else {
+                LOG() << "output memory " << index << ": " << std::hex << *((int64_t*)cpu_ptr);
             }
             pos = pos + 8;
         } else if (parsed_type.base_type == "int64_t" || parsed_type.base_type == "long") {
