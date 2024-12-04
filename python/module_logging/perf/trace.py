@@ -256,7 +256,7 @@ class Tracer(TorchDispatchMode):
             return
 
         # install hooks for some runtime api / fprintf to record time
-        Hook.install_hook()
+        Hook.install_hook(Hook.HookType.kPROFILE)
 
         # enable recorder to record the profiling logs and writo file
         if self.print_module_info:

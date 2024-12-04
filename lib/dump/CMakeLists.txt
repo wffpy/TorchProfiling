@@ -1,0 +1,1 @@
+add_library(Dump STATIC DumpHook.cpp)

@@ -10,7 +10,6 @@ from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporaril
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
 from functools import partial
-import prettytable as pt
 import traceback
 import threading
 
@@ -97,6 +96,7 @@ class TensorInfo:
         Returns:
             无返回值，直接在控制台输出比较结果。
         """
+        import prettytable as pt
         for skip in skip_list:
             if skip.data_ptr() == self.tensor.data_ptr():
                 return False

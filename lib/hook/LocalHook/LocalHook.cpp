@@ -12,8 +12,10 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#ifdef USE_CAPSTONE
 #include "capstone/capstone.h"
 #include "capstone/x86.h"
+#endif
 
 #include "hook/CFuncHook.h"
 #include "utils/Log/Log.h"
@@ -73,6 +75,7 @@ uintptr_t find_free_address(uintptr_t aligned_addr, size_t size) {
 //     return mmap_addr;
 // }
 
+#ifdef USE_CAPSTONE
 struct X64Instructions {
     cs_insn *instructions;
     uint32_t numInstructions;
@@ -821,7 +824,12 @@ void install_local_hook(void *hooked_func, void *payload_func,
         }
     }
 }
+#else
 
+void install_local_hook(void *hooked_func, void *payload_func,
+                        void **trampoline_ptr) {}
+
+#endif
 void LocalHookRegistrar::add(LocalHookInfo info) { hooks.emplace_back(info); }
 
 void LocalHookRegistrar::install() {

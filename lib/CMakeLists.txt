@@ -2,6 +2,7 @@ add_subdirectory(cuda)
 add_subdirectory(cpu)
 add_subdirectory(utils)
 add_subdirectory(hook)
+add_subdirectory(dump)
 
 # add_library(hook STATIC RegisterHook.cpp)
 # target_include_directories(hook PRIVATE ${Python3_INCLUDE_DIRS})

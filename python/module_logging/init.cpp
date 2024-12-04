@@ -2,6 +2,7 @@
 #include "cpu/CpuHook.h"
 #include "cuda/GpuProfiler.h"
 #include "hook/CFuncHook.h"
+#include "dump/dump.h"
 #include "hook/LocalHook/LocalHook.h"
 #include "utils/Timer/Timer.h"
 #include "utils/Lock/FileLock.h"
@@ -11,10 +12,12 @@
 namespace py = pybind11;
 
 void init_hook(pybind11::module& m) {
-    m.def("install_hook", []() {
+    m.def("install_hook", [](cfunc_hook::HookType hook_category) {
+        // the following three funcs do nothing
         cpu_hook::register_cpu_hook();
         gpu_profiler::register_gpu_hook();
-        cfunc_hook::install_hook();
+
+        cfunc_hook::install_hook(hook_category);
         local_hook::install_local_hooks();
     });
 
@@ -71,9 +74,17 @@ void init_hook(pybind11::module& m) {
     m.def("cuda_profiler_end", []() {
         gpu_profiler::cupti_activity_finalize();
     });
-
+    
+    m.def("record_tensor", [](uint64_t ptr, int64_t size) {
+        dump::record_tensor(ptr, size);
+    });
 }
 
 PYBIND11_MODULE(Hook, m) {
+    py::enum_<cfunc_hook::HookType>(m, "HookType")
+        .value("kNONE", cfunc_hook::HookType::kNONE)
+        .value("kDUMP", cfunc_hook::HookType::kDUMP)
+        .value("kPROFILE", cfunc_hook::HookType::kPROFILE)
+        .export_values();
     init_hook(m);
 }

@@ -36,6 +36,7 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         ninja_args = []
         enable_cuda = os.environ.get("CUDA_DEV")
+        enable_xpu = os.environ.get("XPU_DEV")
 
         cmake_args = [
             "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY="
@@ -53,8 +54,12 @@ class CMakeBuild(build_ext):
             # '-DPYTHON_LIBRARY=' + os.environ.get('PYTHON_LIBRARY'),
             # f'-B {os.path.join(script_dir, "build")}',
         ]
+        # up to now, local hook is just used for cuda Profiling 
         if enable_cuda == "true":
             cmake_args.append("-DCUDA_DEV=TRUE")
+            cmake_args.append("-DUSE_CAPSTONE=TRUE")
+        if enable_xpu == "true":
+            cmake_args.append("-DXPU_DEV=TRUE")
 
         # if publish_build:
         # cmake_args.append('-DPYTHON_INCLUDE_DIR=' + os.environ.get('PYTHON_INCLUDE_DIR'))
@@ -113,9 +118,9 @@ def cpp_extend_setup():
         packages=find_packages(where="python"),
         package_dir={"": os.path.join(script_dir, "python")},
         package_data={"": ["*"]},
-        install_requires=[
-            "prettytable",
-        ],
+        # install_requires=[
+        #     "prettytable",
+        # ],
         entry_points={
             "console_scripts": ["module_logging = module_logging.__main__:main"]
         },

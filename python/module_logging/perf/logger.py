@@ -52,6 +52,7 @@ class PerformanceLogger(TorchDispatchMode):
     """
 
     def __init__(self, model=None, profiling_bw=True) -> None:
+        print("Initialize performance logger...")
         super().__init__()
         self.counter = 0
         self.rank = os.getpid()
@@ -80,8 +81,9 @@ class PerformanceLogger(TorchDispatchMode):
         # for gpu profilig with cpp extension, for xpu profiling is not necessary
         if config.cpp_extend():
             from .. import Hook
+            print("Install hook...")
 
-            Hook.install_hook()
+            Hook.install_hook(Hook.HookType.kNONE)
 
     def config(self, model=None, profiling_bw=True):
         if model:
