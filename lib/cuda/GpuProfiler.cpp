@@ -320,6 +320,7 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 void **kernelParams,
                                 void **extra) {
     trace::Tracer tracer(__FUNCTION__);
+    LOG() << "call !!!!!!!";
     cudaDeviceSynchronize();
     CUresult ret = Target_cuLaunchKernel(f, 
                                 gridDimX,
@@ -340,6 +341,7 @@ CUresult local_cuLaunchKernel(CUfunction f,
 
 CUresult (*Target_cuLaunchKernelEx) ( const CUlaunchConfig* config, CUfunction f, void** kernelParams, void** extra ) = nullptr;
 CUresult local_cuLaunchKernelEx ( const CUlaunchConfig* config, CUfunction f, void** kernelParams, void** extra ) {
+    LOG() << "call !!!!!!!";
     trace::Tracer tracer(__FUNCTION__);
     cudaDeviceSynchronize();
     CUresult ret = Target_cuLaunchKernelEx(config, f, kernelParams, extra);
@@ -350,7 +352,7 @@ CUresult local_cuLaunchKernelEx ( const CUlaunchConfig* config, CUfunction f, vo
 
 // REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
 REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
-REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernelEx, (void**)&Target_cuLaunchKernelEx);
+REGISTER_LOCAL_HOOK(cuLaunchKernelEx, (void*)local_cuLaunchKernelEx, (void**)&Target_cuLaunchKernelEx);
 #else
 // Non-Gpu device
 namespace gpu_profiler {
