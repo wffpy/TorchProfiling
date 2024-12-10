@@ -337,8 +337,20 @@ CUresult local_cuLaunchKernel(CUfunction f,
     return ret;
 }
 
+
+CUresult (*Target_cuLaunchKernelEx) ( const CUlaunchConfig* config, CUfunction f, void** kernelParams, void** extra ) = nullptr;
+CUresult local_cuLaunchKernelEx ( const CUlaunchConfig* config, CUfunction f, void** kernelParams, void** extra ) {
+    trace::Tracer tracer(__FUNCTION__);
+    cudaDeviceSynchronize();
+    CUresult ret = Target_cuLaunchKernelEx(config, f, kernelParams, extra);
+    cudaDeviceSynchronize();
+    cupti_activity_flush(); 
+    return ret;
+}
+
 // REGISTER_LOCAL_HOOK(cuGetProcAddress_v2, (void*)local_cuGetProcAddress, (void**)&Target_cuGetProcAddress);
 REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernel, (void**)&Target_cuLaunchKernel);
+REGISTER_LOCAL_HOOK(cuLaunchKernel, (void*)local_cuLaunchKernelEx, (void**)&Target_cuLaunchKernelEx);
 #else
 // Non-Gpu device
 namespace gpu_profiler {
