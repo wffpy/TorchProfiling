@@ -4,12 +4,12 @@ import torch.distributed as dist
 from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
 from torch.overrides import TorchFunctionMode, resolve_name
 from contextlib import contextmanager
-from . import config
 from functools import partial
 import threading
 from ..utils.logging import Logger
+from ..configuration import get_config
 
-cpp_extend = config.get_config("database", "cpp_extend")
+cpp_extend = get_config("database", "cpp_extend")
 if cpp_extend == "True":
     from .. import Hook
 
