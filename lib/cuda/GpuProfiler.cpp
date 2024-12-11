@@ -320,7 +320,6 @@ CUresult local_cuLaunchKernel(CUfunction f,
                                 void **kernelParams,
                                 void **extra) {
     trace::Tracer tracer(__FUNCTION__);
-    LOG() << "call !!!!!!!";
     cudaDeviceSynchronize();
     CUresult ret = Target_cuLaunchKernel(f, 
                                 gridDimX,
@@ -341,7 +340,6 @@ CUresult local_cuLaunchKernel(CUfunction f,
 
 CUresult (*Target_cuLaunchKernelEx) ( const CUlaunchConfig* config, CUfunction f, void** kernelParams, void** extra ) = nullptr;
 CUresult local_cuLaunchKernelEx ( const CUlaunchConfig* config, CUfunction f, void** kernelParams, void** extra ) {
-    LOG() << "call !!!!!!!";
     trace::Tracer tracer(__FUNCTION__);
     cudaDeviceSynchronize();
     CUresult ret = Target_cuLaunchKernelEx(config, f, kernelParams, extra);

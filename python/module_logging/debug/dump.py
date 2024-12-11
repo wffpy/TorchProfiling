@@ -12,6 +12,7 @@ from contextlib import contextmanager
 from functools import partial
 import traceback
 import threading
+from ..configuration import get_config
 
 OP_COUNTER = 0
 
@@ -77,9 +78,11 @@ class TensorInfoRecorder(TorchDispatchMode):
         """
         TensorInfoRecorder 类的初始化方法，用于初始化一些变量。
         """
-        from .. import Hook
+        cpp_extend = get_config("database", "cpp_extend")
+        if cpp_extend == "True":
+            from .. import Hook
+            Hook.install_hook(Hook.HookType.kDUMP)
 
-        Hook.install_hook(Hook.HookType.kDUMP)
         self.lock = threading.Lock()
         super().__init__()
 
@@ -171,12 +174,13 @@ class TensorInfoRecorder(TorchDispatchMode):
             if isinstance(kwargs[key], torch.Tensor):
                 input_tensors.append(kwargs[key])
 
-        from .. import Hook
-        for i in range(len(input_tensors)):
-            cur_tensor = input_tensors[i]
-            Hook.record_tensor(
-                cur_tensor.data_ptr(), cur_tensor.element_size() * cur_tensor.nelement()
-            )
+        if cpp_extend == "True":
+            from .. import Hook
+            for i in range(len(input_tensors)):
+                cur_tensor = input_tensors[i]
+                Hook.record_tensor(
+                    cur_tensor.data_ptr(), cur_tensor.element_size() * cur_tensor.nelement()
+                )
 
         # call op
         output = op(*args, **kwargs)

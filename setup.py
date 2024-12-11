@@ -10,7 +10,7 @@ import configparser
 import sysconfig
 
 # 读取配置文件
-config_path = "python/module_logging/perf/config.ini"
+config_path = "python/module_logging/configuration/config.ini"
 config = configparser.ConfigParser()
 config.read(config_path)
 

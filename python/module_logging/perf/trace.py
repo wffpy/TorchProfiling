@@ -1,12 +1,13 @@
 import torch
 from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
-from . import config
+# from . import config
+from ..configuration import get_config
 from functools import partial
 import os
 
 rank = os.getenv("RANK", "0")
 
-cpp_extend = config.get_config("database", "cpp_extend")
+cpp_extend = get_config("database", "cpp_extend")
 if cpp_extend == "True":
     from .. import Hook
 
