@@ -79,11 +79,12 @@ class PerformanceLogger(TorchDispatchMode):
                     self._register_hook(name, m)
 
         # for gpu profilig with cpp extension, for xpu profiling is not necessary
-        if config.cpp_extend():
+        if cpp_extend:
             from .. import Hook
             print("Install hook...")
 
-            Hook.install_hook(Hook.HookType.kNONE)
+            Hook.install_hook(Hook.HookType.kPROFILE)
+            # Hook.enable_profiling()
 
     def config(self, model=None, profiling_bw=True):
         if model:
@@ -99,7 +100,7 @@ class PerformanceLogger(TorchDispatchMode):
 
     def __enter__(self):
         print("Enter performance logger...")
-        if config.cpp_extend():
+        if cpp_extend:
             Hook.cuda_profiler_start()
         self._pt_impls = {}
         for k in TENSOR_FUNCS_NO_DISPATCH:
@@ -110,7 +111,7 @@ class PerformanceLogger(TorchDispatchMode):
 
     def __exit__(self, exc_type=None, exc_value=None, traceback=None):
         print("Exit performance logger...")
-        if config.cpp_extend():
+        if cpp_extend:
             Hook.cuda_profiler_end()
         for k in TENSOR_FUNCS_NO_DISPATCH:
             setattr(torch.Tensor, k, self._pt_impls[k])
