@@ -2,6 +2,7 @@
 #include "utils/Utils.h"
 #include "utils/Log/Log.h"
 #include "utils/ConsoleTable/ConsoleTable.h"
+// #include "utils/Timer/Timer.h"
 #include <cstdlib>
 #include <cxxabi.h>
 #include <dlfcn.h>
@@ -12,6 +13,7 @@
 
 using namespace trace;
 using namespace console_table;
+using namespace std::chrono;
 
 class Recorder {
   public:
@@ -99,7 +101,7 @@ std::string demangle(const char *mangled_name) {
  * - count the call times of the current function
  *******************************************************************************/
 Tracer::Tracer(std::string name)
-    : max_depth(100), real_size(0), func_name(name) {
+    : max_depth(100), real_size(0), func_name(name), enable_duration(false) {
     static const char *enable_trace = std::getenv("ENABLE_HOOK_TRACE");
     static const char *print_backtrace = std::getenv("PRINT_BACKTRACE");
     bool trace_flag = false;
@@ -115,6 +117,24 @@ Tracer::Tracer(std::string name)
             (std::string(print_backtrace) == "true" || std::string(print_backtrace) == "TRUE")) {
             print();
         }
+    }
+
+    static const char *enable_duration_str = std::getenv("ENABLE_DURATION");
+
+    start = high_resolution_clock::now();
+    if (enable_duration_str &&
+        (std::string(enable_duration_str) == "true" || std::string(enable_duration_str) == "TRUE")) {
+        enable_duration = true;
+    }
+}
+
+Tracer::~Tracer() {
+    if (enable_duration) {
+        auto end = high_resolution_clock::now();
+        int64_t duration =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(end - start)
+            .count();
+        LOG() << func_name << " Duration: " << duration; 
     }
 }
 

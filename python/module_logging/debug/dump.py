@@ -78,10 +78,7 @@ class TensorInfoRecorder(TorchDispatchMode):
         """
         TensorInfoRecorder 类的初始化方法，用于初始化一些变量。
         """
-        cpp_extend = get_config("database", "cpp_extend")
-        if cpp_extend == "True":
-            from .. import Hook
-            Hook.install_hook(Hook.HookType.kDUMP)
+        self.install_hook = False
 
         self.lock = threading.Lock()
         super().__init__()
@@ -94,6 +91,12 @@ class TensorInfoRecorder(TorchDispatchMode):
         Returns:
             Any: 当前实例本身，表示进入上下文管理器后的状态。
         """
+        if not self.install_hook:
+            self.install_hook = True
+            cpp_extend = get_config("database", "cpp_extend")
+            if cpp_extend == "True":
+                from .. import Hook
+                Hook.install_hook(Hook.HookType.kDUMP)
         self._pt_impls = {}
         for k in TENSOR_FUNCS_NO_DISPATCH:
             impl = getattr(torch.Tensor, k)
