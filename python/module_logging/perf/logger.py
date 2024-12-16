@@ -82,9 +82,7 @@ class PerformanceLogger(TorchDispatchMode):
         if cpp_extend:
             from .. import Hook
             print("Install hook...")
-
             Hook.install_hook(Hook.HookType.kPROFILE)
-            # Hook.enable_profiling()
 
     def config(self, model=None, profiling_bw=True):
         if model:
@@ -101,6 +99,7 @@ class PerformanceLogger(TorchDispatchMode):
     def __enter__(self):
         print("Enter performance logger...")
         if cpp_extend:
+            from .. import Hook
             Hook.cuda_profiler_start()
         self._pt_impls = {}
         for k in TENSOR_FUNCS_NO_DISPATCH:
@@ -108,14 +107,21 @@ class PerformanceLogger(TorchDispatchMode):
             self._pt_impls[k] = impl
             setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
+        # if cpp_extend:
+        #     from .. import Hook
+            # print("Performance logging entered at: {} ns".format(Hook.get_current_time()))
 
     def __exit__(self, exc_type=None, exc_value=None, traceback=None):
         print("Exit performance logger...")
         if cpp_extend:
+            from .. import Hook
             Hook.cuda_profiler_end()
         for k in TENSOR_FUNCS_NO_DISPATCH:
             setattr(torch.Tensor, k, self._pt_impls[k])
         super().__exit__(exc_type, exc_value, traceback)
+        # if cpp_extend:
+        #     from .. import Hook
+            # print("Performance logging exited at: {} ns".format(Hook.get_current_time()))
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
@@ -182,7 +188,10 @@ class PerformanceLogger(TorchDispatchMode):
         if self.enable_profiling:
             torch.cuda.synchronize()
             #  insert pre-op delimiter
-            print("[START_SYMBOL]: {}".format(str(op)), flush=True)
+            # print("[START_SYMBOL]: {} ns".format(str(op)), flush=True)
+            # if cpp_extend:
+            #     from .. import Hook
+            #     print("{} start at: {}".format(str(op), Hook.get_current_time()))
             # for debug
             Logger.debug(
                 "[START_SYMBOL]: {}, counter: {}, pid: {}, tid: {}".format(
@@ -192,6 +201,9 @@ class PerformanceLogger(TorchDispatchMode):
             # call op
             output = op(*args, **kwargs)
             torch.cuda.synchronize()
+            # if cpp_extend:
+            #     from .. import Hook
+            #     print("{} end at: {} ns".format(str(op), Hook.get_current_time()))
             #  insert after-op delimiter
             print("[END_SYMBOL]: {}".format(str(op)), flush=True)
             # for debug
