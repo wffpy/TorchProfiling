@@ -188,7 +188,7 @@ class PerformanceLogger(TorchDispatchMode):
         if self.enable_profiling:
             torch.cuda.synchronize()
             #  insert pre-op delimiter
-            # print("[START_SYMBOL]: {} ns".format(str(op)), flush=True)
+            print("[START_SYMBOL]: {} ns".format(str(op)), flush=True)
             # if cpp_extend:
             #     from .. import Hook
             #     print("{} start at: {}".format(str(op), Hook.get_current_time()))
