@@ -1,5 +1,6 @@
-import torch
 import module_logging as ml
+import torch
+
 
 def test_trace():
     # Set up two tensors
@@ -9,4 +10,3 @@ def test_trace():
     # Move tensors to GPU if available
     with ml.trace.Tracer(path="./profiling1.log", print_module_info=False, ranks=[0, 1, 2]):
         result = tensor1 + tensor2
-

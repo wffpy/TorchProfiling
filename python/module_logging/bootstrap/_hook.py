@@ -1,8 +1,8 @@
 import functools
 import importlib
+import os
 import sys
 import time
-import os
 
 _hook_modules = {"torch"}
 times = 0
@@ -40,36 +40,18 @@ def module_hook(fullname, module):
     if fullname == "torch":
         # module.autograd.backward = func_wrapper(module.autograd.backward)
 
-        module.distributed.broadcast = func_torch_distributed_wrapper(
-            module.distributed.broadcast
-        )
-        module.distributed.all_reduce = func_torch_distributed_wrapper(
-            module.distributed.all_reduce
-        )
-        module.distributed.reduce = func_torch_distributed_wrapper(
-            module.distributed.reduce
-        )
-        module.distributed.all_gather = func_torch_distributed_wrapper(
-            module.distributed.all_gather
-        )
+        module.distributed.broadcast = func_torch_distributed_wrapper(module.distributed.broadcast)
+        module.distributed.all_reduce = func_torch_distributed_wrapper(module.distributed.all_reduce)
+        module.distributed.reduce = func_torch_distributed_wrapper(module.distributed.reduce)
+        module.distributed.all_gather = func_torch_distributed_wrapper(module.distributed.all_gather)
         # module.distributed._allgather_base= func_torch_distributed_wrapper(
         #     module.distributed._allgather_base
         # )
-        module.distributed.gather = func_torch_distributed_wrapper(
-            module.distributed.gather
-        )
-        module.distributed.scatter = func_torch_distributed_wrapper(
-            module.distributed.scatter
-        )
-        module.distributed.reduce_scatter = func_torch_distributed_wrapper(
-            module.distributed.reduce_scatter
-        )
-        module.distributed.send = func_torch_distributed_wrapper(
-            module.distributed.send
-        )
-        module.distributed.recv = func_torch_distributed_wrapper(
-            module.distributed.recv
-        )
+        module.distributed.gather = func_torch_distributed_wrapper(module.distributed.gather)
+        module.distributed.scatter = func_torch_distributed_wrapper(module.distributed.scatter)
+        module.distributed.reduce_scatter = func_torch_distributed_wrapper(module.distributed.reduce_scatter)
+        module.distributed.send = func_torch_distributed_wrapper(module.distributed.send)
+        module.distributed.recv = func_torch_distributed_wrapper(module.distributed.recv)
 
 
 def func_wrapper(func):
@@ -87,10 +69,12 @@ def func_wrapper(func):
 
     return wrapper
 
+
 class INFOTYPE:
     BEFORE = 1
     AFTER = 2
     DATA = 3
+
 
 def get_param(args, kwargs, position: int, param_name: str):
     if len(args) > position:
@@ -101,9 +85,11 @@ def get_param(args, kwargs, position: int, param_name: str):
         assert False, "No such parameter: {}".format(param_name)
         return None
 
+
 def gen_bytes_str(tensor):
     bytes = tensor.numel() * tensor.element_size()
-    return "[DIST BYTES]:  {} bytes".format(bytes) 
+    return "[DIST BYTES]:  {} bytes".format(bytes)
+
 
 class DistInfoGenerator(object):
     @staticmethod
@@ -145,7 +131,6 @@ class DistInfoGenerator(object):
             return gen_bytes_str(tensor)
         return None
 
-
     @staticmethod
     def gen_send(args, kwargs):
         tensor = get_param(args, kwargs, 0, "tensor")
@@ -160,6 +145,7 @@ class DistInfoGenerator(object):
             return gen_bytes_str(tensor)
         return None
 
+
 # op_name: all_reduce_
 def print_dist_op_bytes_str(op_name, args, kwargs):
     gen_func_name = "gen_{}".format(op_name)
@@ -172,12 +158,14 @@ def print_dist_op_bytes_str(op_name, args, kwargs):
         # assert False, "No such function: {}".format(gen_func_name)
         print("No such function: {}".format(gen_func_name))
 
+
 def enable_profiling():
-    enable_prof_env = os.environ.get('ENABLE_PROFILING', None)
-    if enable_prof_env is not None :
-        if enable_prof_env == 'true' or enable_prof_env == 'True':
+    enable_prof_env = os.environ.get("ENABLE_PROFILING", None)
+    if enable_prof_env is not None:
+        if enable_prof_env == "true" or enable_prof_env == "True":
             return True
     return False
+
 
 def func_torch_distributed_wrapper(func):
     @functools.wraps(func)
@@ -185,6 +173,7 @@ def func_torch_distributed_wrapper(func):
         if callable(func):
             if enable_profiling():
                 import torch
+
                 func_name = func.__name__
                 torch.cuda.synchronize()
                 print("[DIST START_SYMBOL]: {}".format(func.__name__))

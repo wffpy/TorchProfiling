@@ -1,5 +1,6 @@
-import os
 import configparser
+import os
+
 from ..utils.logging import Logger
 
 config = configparser.ConfigParser()

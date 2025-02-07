@@ -1,13 +1,12 @@
+import configparser
 import os
-import sys
 import subprocess
-from setuptools import setup, find_packages
-from setuptools import setup, Extension, Command
+import sys
+
+import pybind11
+from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install_lib import install_lib
-import pybind11
-import configparser
-import sysconfig
 
 # 读取配置文件
 config_path = "python/module_logging/configuration/config.ini"
@@ -39,8 +38,7 @@ class CMakeBuild(build_ext):
         enable_xpu = os.environ.get("XPU_DEV")
 
         cmake_args = [
-            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY="
-            + os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name))),
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name))),
             "-DPYTHON_EXECUTABLE=" + sys.executable,
             "-DCMAKE_INSTALL_PREFIX="
             + os.path.join(
@@ -54,7 +52,7 @@ class CMakeBuild(build_ext):
             # '-DPYTHON_LIBRARY=' + os.environ.get('PYTHON_LIBRARY'),
             # f'-B {os.path.join(script_dir, "build")}',
         ]
-        # up to now, local hook is just used for cuda Profiling 
+        # up to now, local hook is just used for cuda Profiling
         if enable_cuda == "true":
             cmake_args.append("-DCUDA_DEV=TRUE")
             cmake_args.append("-DUSE_CAPSTONE=TRUE")
@@ -69,9 +67,7 @@ class CMakeBuild(build_ext):
         build_dir = os.path.abspath(os.path.join(self.build_temp, ext.name))
         os.makedirs(build_dir, exist_ok=True)
 
-        subprocess.check_call(
-            ["cmake", f"{script_dir}"] + cmake_args + ninja_args, cwd=build_dir
-        )
+        subprocess.check_call(["cmake", f"{script_dir}"] + cmake_args + ninja_args, cwd=build_dir)
         print(f"cmake build_dir {build_dir}")
         subprocess.check_call(["cmake", "--build", "."], cwd=build_dir)
 
@@ -84,6 +80,7 @@ class InstallLibWithPTH(install_lib):
         self.copy_file(path, dest)
         self.outputs = [dest]
 
+
 def regular_setup():
     setup(
         name="module_logging",
@@ -94,16 +91,13 @@ def regular_setup():
         packages=find_packages(where="python"),
         package_dir={"": os.path.join(script_dir, "python")},
         package_data={"": ["*"]},
-        #install_requires=[
+        # install_requires=[
         #    "torch",
-        #],
-        entry_points={
-            "console_scripts": ["module_logging = module_logging.__main__:main"]
-        },
+        # ],
+        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
         cmdclass={
             "install_lib": InstallLibWithPTH,
         },
-
         zip_safe=False,
     )
 
@@ -121,9 +115,7 @@ def cpp_extend_setup():
         # install_requires=[
         #     "prettytable",
         # ],
-        entry_points={
-            "console_scripts": ["module_logging = module_logging.__main__:main"]
-        },
+        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
         ext_modules=[
             CMakeExtension("module_logging.Hook"),
         ],

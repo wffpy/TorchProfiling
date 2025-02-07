@@ -2,16 +2,12 @@
 this is a module for tensor debugging, to check the memory overlapping
 """
 
-import os
-import sys
-import torch
-import torch.distributed as dist
-from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
-from torch.overrides import TorchFunctionMode, resolve_name
-from contextlib import contextmanager
-from functools import partial
-import traceback
 import threading
+from functools import partial
+
+import torch
+from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
+
 from ..configuration import get_config
 
 OP_COUNTER = 0
@@ -96,6 +92,7 @@ class TensorInfoRecorder(TorchDispatchMode):
             cpp_extend = get_config("database", "cpp_extend")
             if cpp_extend == "True":
                 from .. import Hook
+
                 Hook.install_hook(Hook.HookType.kDUMP)
         self._pt_impls = {}
         for k in TENSOR_FUNCS_NO_DISPATCH:
@@ -179,11 +176,10 @@ class TensorInfoRecorder(TorchDispatchMode):
 
         if cpp_extend == "True":
             from .. import Hook
+
             for i in range(len(input_tensors)):
                 cur_tensor = input_tensors[i]
-                Hook.record_tensor(
-                    cur_tensor.data_ptr(), cur_tensor.element_size() * cur_tensor.nelement()
-                )
+                Hook.record_tensor(cur_tensor.data_ptr(), cur_tensor.element_size() * cur_tensor.nelement())
 
         # call op
         output = op(*args, **kwargs)

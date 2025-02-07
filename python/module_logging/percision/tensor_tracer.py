@@ -2,16 +2,13 @@
 this is a module for tensor debugging, to check the memory overlapping
 """
 
-import os
 import sys
-import torch
-import torch.distributed as dist
-from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
-from torch.overrides import TorchFunctionMode, resolve_name
-from contextlib import contextmanager
-from functools import partial
-import traceback
 import threading
+import traceback
+from functools import partial
+
+import torch
+from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
 
 OP_COUNTER = 0
 
@@ -97,6 +94,7 @@ class TensorInfo:
             无返回值，直接在控制台输出比较结果。
         """
         import prettytable as pt
+
         for skip in skip_list:
             if skip.data_ptr() == self.tensor.data_ptr():
                 return False
@@ -107,12 +105,7 @@ class TensorInfo:
         mean_v = torch.mean(cpu_t).item()
         std_v = torch.std(cpu_t).item()
 
-        if (
-            max_v != self.max
-            or min_v != self.min
-            or mean_v != self.mean
-            or std_v != self.std
-        ):
+        if max_v != self.max or min_v != self.min or mean_v != self.mean or std_v != self.std:
             table = pt.PrettyTable(
                 [
                     "Tensor",
@@ -298,9 +291,7 @@ class TensorTracer(TorchDispatchMode):
                         self.trace(name, param, trace_type)
             else:
                 raise TypeError(
-                    "Expected `model` to be an instance of `torch.nn.Module` or `list`, but got {}.".format(
-                        type(model)
-                    )
+                    "Expected `model` to be an instance of `torch.nn.Module` or `list`, but got {}.".format(type(model))
                 )
 
     def start(self):

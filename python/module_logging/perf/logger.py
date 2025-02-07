@@ -1,17 +1,18 @@
 import os
-import torch
-import torch.distributed as dist
-from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
-from torch.overrides import TorchFunctionMode, resolve_name
+import threading
 from contextlib import contextmanager
 from functools import partial
-import threading
-from ..utils.logging import Logger
+
+import torch
+from torch.overrides import TorchFunctionMode, resolve_name
+from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
+
 from ..configuration import get_config
+from ..utils.logging import Logger
 
 cpp_extend = get_config("database", "cpp_extend")
 if cpp_extend == "True":
-    from .. import Hook
+    pass
 
 MODULE_COUNTER = 0
 print_rank = int(os.environ.get("PRINT_RANK", 0))
@@ -61,9 +62,7 @@ class PerformanceLogger(TorchDispatchMode):
         enable_prof_env = os.environ.get("ENABLE_PROFILING", None)
         self.enable_profiling = False
         if enable_prof_env is not None:
-            self.enable_profiling = (
-                enable_prof_env == "True" or enable_prof_env == "true"
-            )
+            self.enable_profiling = enable_prof_env == "True" or enable_prof_env == "true"
 
         self.profiling_bw = profiling_bw
         # traverse modules and register forward and backward hooks for each
@@ -81,6 +80,7 @@ class PerformanceLogger(TorchDispatchMode):
         # for gpu profilig with cpp extension, for xpu profiling is not necessary
         if cpp_extend:
             from .. import Hook
+
             print("Install hook...")
             Hook.install_hook(Hook.HookType.kPROFILE)
 
@@ -100,6 +100,7 @@ class PerformanceLogger(TorchDispatchMode):
         print("Enter performance logger...")
         if cpp_extend:
             from .. import Hook
+
             Hook.cuda_profiler_start()
         self._pt_impls = {}
         for k in TENSOR_FUNCS_NO_DISPATCH:
@@ -109,19 +110,20 @@ class PerformanceLogger(TorchDispatchMode):
         super().__enter__()
         # if cpp_extend:
         #     from .. import Hook
-            # print("Performance logging entered at: {} ns".format(Hook.get_current_time()))
+        # print("Performance logging entered at: {} ns".format(Hook.get_current_time()))
 
     def __exit__(self, exc_type=None, exc_value=None, traceback=None):
         print("Exit performance logger...")
         if cpp_extend:
             from .. import Hook
+
             Hook.cuda_profiler_end()
         for k in TENSOR_FUNCS_NO_DISPATCH:
             setattr(torch.Tensor, k, self._pt_impls[k])
         super().__exit__(exc_type, exc_value, traceback)
         # if cpp_extend:
         #     from .. import Hook
-            # print("Performance logging exited at: {} ns".format(Hook.get_current_time()))
+        # print("Performance logging exited at: {} ns".format(Hook.get_current_time()))
 
     def get_named_modules(self, module: torch.nn.Module, prefix=""):
         stack = []
