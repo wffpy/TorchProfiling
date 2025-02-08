@@ -4,6 +4,7 @@
 #include "hook/CFuncHook.h"
 #include "dump/dump.h"
 #include "hook/LocalHook/LocalHook.h"
+#include "utils/ProfilingAccumulator/ProfilingAccumulator.h"
 #include "utils/Timer/Timer.h"
 #include "utils/Lock/FileLock.h"
 #include "utils/Recorder/Recorder.h"
@@ -74,9 +75,26 @@ void init_hook(pybind11::module& m) {
     m.def("cuda_profiler_end", []() {
         gpu_profiler::cupti_activity_finalize();
     });
-    
+
     m.def("record_tensor", [](uint64_t ptr, int64_t size) {
         dump::record_tensor(ptr, size);
+    });
+
+    m.def("enable_profiling_accumulation", [](){
+        profiling_accumulator::enable_profiling_accumulation();
+    });
+
+    m.def("disable_profiling_accumulation", [](){
+        profiling_accumulator::disable_profiling_accumulation();
+    });
+
+    m.def("profiling_accumulation_start_iteration", [](int64_t iteration){
+        profiling_accumulator::start_iteration(iteration);
+    });
+
+    m.def("profiling_accumulation_set_dump_json_path", [](char* path) {
+        std::string path_str(path);
+        profiling_accumulator::set_profiling_dump_file(path_str);
     });
 }
 
@@ -85,6 +103,7 @@ PYBIND11_MODULE(Hook, m) {
         .value("kNONE", cfunc_hook::HookType::kNONE)
         .value("kDUMP", cfunc_hook::HookType::kDUMP)
         .value("kPROFILE", cfunc_hook::HookType::kPROFILE)
+        .value("kACCUMULATE_KERNEL_TIME", cfunc_hook::HookType::kACCUMULATE_KERNEL_TIME)
         .export_values();
     init_hook(m);
 }
