@@ -424,6 +424,7 @@ int DumpHookWrapper::local_launch_async(void* func) {
 
 REGISTERHOOK(
         cfunc_hook::HookType::kDUMP,
+        kDUMP,
         xpu_launch_async,
         (void*)DumpHookWrapper::local_launch_async,
         (void**)&SingletonDumpHookWrapper::instance().get_elem()->origin_launch_async_);
@@ -443,6 +444,7 @@ int DumpHookWrapper::local_launch_arg_set(const void* arg, size_t size, size_t o
 
 REGISTERHOOK(
         cfunc_hook::HookType::kDUMP,
+        kDUMP,
         xpu_launch_argument_set,
         (void*)DumpHookWrapper::local_launch_arg_set,
         (void**)&SingletonDumpHookWrapper::instance().get_elem()->origin_launch_arg_set_);
