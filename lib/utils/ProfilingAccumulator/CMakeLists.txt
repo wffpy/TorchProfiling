@@ -1,0 +1,1 @@
+add_library(ProfilingAccumulator STATIC ProfilingAccumulator.cpp)

@@ -1,9 +1,11 @@
+import os
+from functools import partial
+
 import torch
 from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
+
 # from . import config
 from ..configuration import get_config
-from functools import partial
-import os
 
 rank = os.getenv("RANK", "0")
 
@@ -11,28 +13,9 @@ cpp_extend = get_config("database", "cpp_extend")
 if cpp_extend == "True":
     from .. import Hook
 
+from typing import Optional
 
-from typing import Any, Callable, Dict, Optional, Tuple, Union, List
-from torch._C._distributed_c10d import (
-    AllgatherOptions,
-    AllreduceCoalescedOptions,
-    AllreduceOptions,
-    AllToAllOptions,
-    _DistributedBackendOptions,
-    BarrierOptions,
-    BroadcastOptions,
-    GatherOptions,
-    PrefixStore,
-    ProcessGroup,
-    ReduceOp,
-    ReduceOptions,
-    ReduceScatterOptions,
-    ScatterOptions,
-    Store,
-    DebugLevel,
-    get_debug_level,
-    Work,
-)
+from torch._C._distributed_c10d import ProcessGroup, ReduceOp
 
 origin_all_reduce = None
 origin_broadcast = None
@@ -110,9 +93,7 @@ def mock__all_gather_base(output_tensor, input_tensor, group=None, async_op=Fals
     return ret
 
 
-def mock__reduce_scatter_base(
-    output_tensor, input, op=ReduceOp.SUM, group=None, async_op=False
-):
+def mock__reduce_scatter_base(output_tensor, input, op=ReduceOp.SUM, group=None, async_op=False):
     # print("[DIST START_SYMBOL]: torch.distributed._reduce_scatter_base", flush=True)
     # bytest = output_tensor.numel() * output_tensor.element_size()
     # print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
@@ -123,9 +104,7 @@ def mock__reduce_scatter_base(
     return ret
 
 
-def mock_send(
-    tensor: torch.Tensor, dst: int, group: Optional[ProcessGroup] = None, tag: int = 0
-) -> None:
+def mock_send(tensor: torch.Tensor, dst: int, group: Optional[ProcessGroup] = None, tag: int = 0) -> None:
     # print("[DIST START_SYMBOL]: torch.distributed.send", flush=True)
     # bytest = tensor.numel() * tensor.element_size()
     # print("[DIST BYTES]: {} bytes".format(bytest), flush=True)
@@ -374,12 +353,8 @@ class Tracer(TorchDispatchMode):
         module.register_forward_hook(self.post_forward_hook_wrapper(name, level))
 
         if self.profiling_backward:
-            module.register_full_backward_pre_hook(
-                self.pre_backward_hook_wrapper(name, level)
-            )
-            module.register_full_backward_hook(
-                self.post_backward_hook_wrapper(name, level)
-            )
+            module.register_full_backward_pre_hook(self.pre_backward_hook_wrapper(name, level))
+            module.register_full_backward_hook(self.post_backward_hook_wrapper(name, level))
 
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
         if kwargs is None:

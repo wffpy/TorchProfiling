@@ -1,18 +1,14 @@
 import argparse
-from ast import arg
-from asyncore import write
 import pathlib
-import sys
 
+from ..percision.compare_persion import compare
 from ..perf.analysis import (
     AtenOpAnalyzer,
     DistAnalyzer,
-    gen_module_compare_tables,
     gen_module_compare_table_str,
+    gen_module_compare_tables,
 )
-import prettytable as pt
 from .cut_log import extract_section
-from ..percision.compare_persion import compare
 
 
 def parse_args():
@@ -29,29 +25,19 @@ def parse_args():
     )
 
     # arg_parser.add_argument("--c", type=pathlib.Path, help="path to XPU log file")
-    arg_parser.add_argument(
-        "--csv", action="store_true", help="write tables to csv files"
-    )
+    arg_parser.add_argument("--csv", action="store_true", help="write tables to csv files")
 
     arg_parser.add_argument("--all", action="store_true", help="generate all tables")
 
-    arg_parser.add_argument(
-        "--detail", action="store_true", help="generate detail table"
-    )
+    arg_parser.add_argument("--detail", action="store_true", help="generate detail table")
 
-    arg_parser.add_argument(
-        "--summary", action="store_true", help="generate summary table"
-    )
+    arg_parser.add_argument("--summary", action="store_true", help="generate summary table")
 
-    arg_parser.add_argument(
-        "--total", action="store_false", help="generate total table"
-    )
+    arg_parser.add_argument("--total", action="store_false", help="generate total table")
 
     arg_parser.add_argument("--path", type=pathlib.Path, help="path to XPU log file")
 
-    arg_parser.add_argument(
-        "--compare", action="store_true", help="generate summary table"
-    )
+    arg_parser.add_argument("--compare", action="store_true", help="generate summary table")
 
     arg_parser.add_argument("--lhs_path", type=pathlib.Path, help="path to log file")
 
@@ -59,9 +45,7 @@ def parse_args():
 
     arg_parser.add_argument("--cut_log", action="store_true", help="split log")
 
-    arg_parser.add_argument(
-        "--dist", action="store_true", help="analysis distributed ops"
-    )
+    arg_parser.add_argument("--dist", action="store_true", help="analysis distributed ops")
 
     arg_parser.add_argument(
         "--begin",
@@ -78,9 +62,7 @@ def parse_args():
         default="iteration        3",
         help="path to log file",
     )
-    arg_parser.add_argument(
-        "--percision", action="store_true", help="generate summary table"
-    )
+    arg_parser.add_argument("--percision", action="store_true", help="generate summary table")
 
     return arg_parser.parse_args()
 

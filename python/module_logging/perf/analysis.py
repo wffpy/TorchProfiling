@@ -1,23 +1,16 @@
-from asyncio import get_event_loop
-from locale import locale_alias
-from lzma import FORMAT_ALONE
 import os.path as osp
-from ossaudiodev import SOUND_MIXER_ALTPCM
-import re
-from typing_extensions import Self
-from xml.etree.ElementTree import C14NWriterTarget
-import prettytable as pt
-# from .logging import Logger
-from ..utils.logging import Logger
+import subprocess
 from enum import Enum, auto
 from textwrap import fill
-import subprocess
+
+import prettytable as pt
+
+# from .logging import Logger
+from ..utils.logging import Logger
 
 
 def demangle(mangled_name):
-    result = subprocess.run(
-        ["c++filt", mangled_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    result = subprocess.run(["c++filt", mangled_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return result.stdout.decode("utf-8").strip()
 
 
@@ -279,10 +272,9 @@ class Analyzer:
         1. identify the module by following symbols: [BEGIN FORWARD], [END FORWARD], [BEGIN BACKWARD], [END BACKWARD]o
         2. if there is no module in this iteration, return None
         """
-        if (
-            self.collection_state == STATE.FORMAL
-            or self.collection_state == STATE.MODULE
-        ) and ("[BEGIN FORWARD]" in line or "[BEGIN BACKWARD]" in line):
+        if (self.collection_state == STATE.FORMAL or self.collection_state == STATE.MODULE) and (
+            "[BEGIN FORWARD]" in line or "[BEGIN BACKWARD]" in line
+        ):
             # if self.current_module is not None:
             #     self.stack.push(self.current_module)
             self.current_m_name = line.rstrip("\n").split(":")[-1]
@@ -303,19 +295,13 @@ class Analyzer:
         1. identify the module by following symbols: [BEGIN FORWARD], [END FORWARD], [BEGIN BACKWARD], [END BACKWARD]o
         2. if there is no module in this iteration, return None
         """
-        if self.collection_state == STATE.MODULE and (
-            "[END FORWARD]" in line or "[END BACKWARD]" in line
-        ):
+        if self.collection_state == STATE.MODULE and ("[END FORWARD]" in line or "[END BACKWARD]" in line):
             Logger.debug("Module End: {}".format(self.current_m_name))
             temp_module = self.current_module
             self.stack.pop()
             self.current_module = self.stack.top() if 0 < self.stack.depth() else None
-            self.current_m_name = (
-                self.current_module.get_name() if self.current_module else ""
-            )
-            self.collection_state = (
-                STATE.FORMAL if self.current_module is None else STATE.MODULE
-            )
+            self.current_m_name = self.current_module.get_name() if self.current_module else ""
+            self.collection_state = STATE.FORMAL if self.current_module is None else STATE.MODULE
             if self.current_module is None:
                 self.op_or_module.append(temp_module)
             else:
@@ -390,8 +376,7 @@ class AtenOpAnalyzer(Analyzer):
         2. if there is no op in this iteration, return None
         """
         if (
-            self.collection_state == STATE.FORMAL
-            or self.collection_state == STATE.MODULE
+            self.collection_state == STATE.FORMAL or self.collection_state == STATE.MODULE
         ) and "[START_SYMBOL]" in line:
             Logger.debug("Op Start")
             if "c10d" in line:
@@ -402,8 +387,7 @@ class AtenOpAnalyzer(Analyzer):
             self.current_op = AtenOp(self.current_op_name, self.current_m_name)
             return True
         elif (
-            self.collection_state == STATE.FORMAL
-            or self.collection_state == STATE.MODULE
+            self.collection_state == STATE.FORMAL or self.collection_state == STATE.MODULE
         ) and "[DIST START_SYMBOL]" in line:
             if "[DIST START_SYMBOL]" in line:
                 self.collection_state = STATE.DISTOP
@@ -422,9 +406,7 @@ class AtenOpAnalyzer(Analyzer):
             else:
                 self.op_or_module.append(self.current_op)
             self.current_op = None
-            self.collection_state = (
-                STATE.FORMAL if self.current_module is None else STATE.MODULE
-            )
+            self.collection_state = STATE.FORMAL if self.current_module is None else STATE.MODULE
             return True
         elif self.collection_state == STATE.DISTOP and "[DIST END_SYMBOL]" in line:
             Logger.debug("DIST Op End")
@@ -433,9 +415,7 @@ class AtenOpAnalyzer(Analyzer):
             else:
                 self.op_or_module.append(self.current_op)
             self.current_op = None
-            self.collection_state = (
-                STATE.FORMAL if self.current_module is None else STATE.MODULE
-            )
+            self.collection_state = STATE.FORMAL if self.current_module is None else STATE.MODULE
             return True
 
         return False
@@ -449,8 +429,7 @@ class AtenOpAnalyzer(Analyzer):
                 self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
             return True
         elif (
-            self.collection_state == STATE.MODULE
-            or self.collection_state == STATE.FORMAL
+            self.collection_state == STATE.MODULE or self.collection_state == STATE.FORMAL
         ) and "[XPURT_PROF]" in line:
             if self.current_op is None:
                 Logger.debug("Op Time")
@@ -535,9 +514,7 @@ class AtenOpAnalyzer(Analyzer):
                 op_summary = AtenOpSummary(v)
                 op_dict[k] = op_summary
 
-        op_list = sorted(
-            op_dict.items(), key=lambda x: x[1].get_total_time(), reverse=True
-        )
+        op_list = sorted(op_dict.items(), key=lambda x: x[1].get_total_time(), reverse=True)
 
         table = pt.PrettyTable(
             [
@@ -582,8 +559,7 @@ class DistAnalyzer(Analyzer):
         2. if there is no op in this iteration, return None
         """
         if (
-            self.collection_state == STATE.FORMAL
-            or self.collection_state == STATE.MODULE
+            self.collection_state == STATE.FORMAL or self.collection_state == STATE.MODULE
         ) and "[DIST START_SYMBOL]" in line:
             Logger.debug("DIST Op Start")
             self.collection_state = STATE.DISTOP
@@ -601,9 +577,7 @@ class DistAnalyzer(Analyzer):
             else:
                 self.op_or_module.append(self.current_op)
             self.current_op = None
-            self.collection_state = (
-                STATE.FORMAL if self.current_module is None else STATE.MODULE
-            )
+            self.collection_state = STATE.FORMAL if self.current_module is None else STATE.MODULE
             return True
         return False
 
@@ -663,9 +637,7 @@ class DistAnalyzer(Analyzer):
             elif isinstance(elem, OpInfoBase):
                 final_list.append(elem)
 
-        table = pt.PrettyTable(
-            ["Module", "Dist Op", "Bytes", "Time(ms)", "BW(GB/s)", "Percent(BW/20)"]
-        )
+        table = pt.PrettyTable(["Module", "Dist Op", "Bytes", "Time(ms)", "BW(GB/s)", "Percent(BW/20)"])
         for elem in final_list:
             table.add_row(
                 [
@@ -696,13 +668,9 @@ class DistAnalyzer(Analyzer):
             else:
                 op_summary = DistOpSummary(v, by)
                 op_dict[k] = op_summary
-        op_list = sorted(
-            op_dict.items(), key=lambda x: x[1].get_total_time(), reverse=True
-        )
+        op_list = sorted(op_dict.items(), key=lambda x: x[1].get_total_time(), reverse=True)
 
-        table = pt.PrettyTable(
-            ["Op", "Total Time(ms)", "Total Bytes", "Avg Badnwidth(GB/s)", "Percent(%)"]
-        )
+        table = pt.PrettyTable(["Op", "Total Time(ms)", "Total Bytes", "Avg Badnwidth(GB/s)", "Percent(%)"])
         for op in op_list:
             percent = op[1].get_avg_bw() / 20
             table.add_row(
@@ -771,9 +739,7 @@ def compare_module(lhs: LocalModule, rhs: LocalModule):
         lhs_son_m_list_list = []
         rhs_son_m_list_list = []
         for lhs_son_m, rhs_son_m in zip(lhs_sub_modules, rhs_sub_modules):
-            lhs_son_m_block_list, rhs_son_m_block_list = compare_module(
-                lhs_son_m, rhs_son_m
-            )
+            lhs_son_m_block_list, rhs_son_m_block_list = compare_module(lhs_son_m, rhs_son_m)
             lhs_son_m_list_list.append(lhs_son_m_block_list)
             rhs_son_m_list_list.append(rhs_son_m_block_list)
 
@@ -805,9 +771,7 @@ def merge_block(lhs: Block, rhs: Block):
         Logger.error("The name of two blocks is not the same")
     lhs_op_list = lhs.get_op_list()
     rhs_op_list = rhs.get_op_list()
-    max_len = (
-        len(lhs_op_list) if len(lhs_op_list) > len(rhs_op_list) else len(rhs_op_list)
-    )
+    max_len = len(lhs_op_list) if len(lhs_op_list) > len(rhs_op_list) else len(rhs_op_list)
     table = pt.PrettyTable(
         [
             fill("Module Name", width=200),
@@ -834,14 +798,10 @@ def merge_block(lhs: Block, rhs: Block):
             )
         elif i < len(lhs_op_list):
             lhs_op = lhs_op_list[i]
-            table.add_row(
-                [fill("", width=200), lhs_op.get_name(), lhs_op.get_time(), "", "", ""]
-            )
+            table.add_row([fill("", width=200), lhs_op.get_name(), lhs_op.get_time(), "", "", ""])
         elif i < len(rhs_op_list):
             rhs_op = rhs_op_list[i]
-            table.add_row(
-                [fill("", width=200), "", "", rhs_op.get_name(), rhs_op.get_time(), ""]
-            )
+            table.add_row([fill("", width=200), "", "", rhs_op.get_name(), rhs_op.get_time(), ""])
     table.add_row(
         [
             fill("", width=200),
@@ -944,9 +904,7 @@ def gen_module_compare_tables(analyzer1, analyzer2):
     error_list = []
     for table in table_list:
         if len(count_list) != len(non_duplicate_table_list):
-            Logger.error(
-                "The number of count_list is not the same as non_duplicate_table_list"
-            )
+            Logger.error("The number of count_list is not the same as non_duplicate_table_list")
         find_flag = False
         error = cal_error(table)
         for index in range(len(non_duplicate_table_list)):
@@ -964,13 +922,9 @@ def gen_module_compare_tables(analyzer1, analyzer2):
 
     for index in range(len(non_duplicate_table_list)):
         add_column(non_duplicate_table_list[index], "count", count_list[index])
-        add_column(
-            non_duplicate_table_list[index], "Total Error(ms)", error_list[index]
-        )
+        add_column(non_duplicate_table_list[index], "Total Error(ms)", error_list[index])
 
-    non_duplicate_table_list = sorted(
-        non_duplicate_table_list, key=sort_func, reverse=True
-    )
+    non_duplicate_table_list = sorted(non_duplicate_table_list, key=sort_func, reverse=True)
     return non_duplicate_table_list
 
 

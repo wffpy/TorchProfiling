@@ -1,5 +1,6 @@
-import torch
 import module_logging as ml
+import torch
+
 
 def test_trace():
     # Set up two tensors
@@ -8,5 +9,3 @@ def test_trace():
 
     with ml.PerformanceLogger():
         result = tensor1 + tensor2
-
- 

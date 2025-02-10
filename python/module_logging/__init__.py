@@ -1,9 +1,8 @@
 from .configuration import get_config
-from .perf.logger import PerformanceLogger
-from .percision import PercisionDebugger, percision_debugger
-from .percision import tensor_tracer
-from .perf import trace
 from .debug import tensor_info_recorder
+from .percision import PercisionDebugger, percision_debugger, tensor_tracer
+from .perf import trace
+from .perf.logger import PerformanceLogger
 
 cpp_extend = get_config("database", "cpp_extend")
 if cpp_extend == "True":

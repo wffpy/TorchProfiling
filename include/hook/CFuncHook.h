@@ -13,6 +13,7 @@ enum class HookType {
     kNONE = 0,
     kDUMP,
     kPROFILE,
+    kACCUMULATE_KERNEL_TIME,
 };
 
 struct HookInfo {
@@ -53,7 +54,8 @@ void install_hook(HookType category);
 
 } // namespace cfunc_hook
 
-#define REGISTERHOOK(cat, name, new_func, old_func)                                 \
-    static cfunc_hook::HookRegistration __attribute__((used)) registration##name(cat, #name, new_func, old_func);
+#define REGISTERHOOK(category, category_name, name, new_func, old_func) \
+    static cfunc_hook::HookRegistration __attribute__((used))           \
+        registration_##category_name##_##name(category, #name, new_func, old_func);
 
 #endif
