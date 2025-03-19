@@ -95,9 +95,9 @@ def regular_setup():
         #    "torch",
         # ],
         entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
-        cmdclass={
-            "install_lib": InstallLibWithPTH,
-        },
+        # cmdclass={
+        #     "install_lib": InstallLibWithPTH,
+        # },
         zip_safe=False,
     )
 
@@ -119,7 +119,7 @@ def cpp_extend_setup():
         ext_modules=[
             CMakeExtension("module_logging.Hook"),
         ],
-        cmdclass=dict(build_ext=CMakeBuild, install_lib=InstallLibWithPTH),
+        # cmdclass=dict(build_ext=CMakeBuild, install_lib=InstallLibWithPTH),
         zip_safe=False,
     )
 
