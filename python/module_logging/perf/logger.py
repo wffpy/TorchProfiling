@@ -7,12 +7,10 @@ import torch
 from torch.overrides import TorchFunctionMode, resolve_name
 from torch.utils._python_dispatch import TorchDispatchMode, _pop_mode_temporarily
 
-from ..configuration import get_config
+from ..configuration import get_config, cpp_extend
 from ..utils.logging import Logger
 
-cpp_extend = get_config("database", "cpp_extend")
-if cpp_extend == "True":
-    pass
+enable_cpp_extend = cpp_extend()
 
 MODULE_COUNTER = 0
 print_rank = int(os.environ.get("PRINT_RANK", 0))
@@ -78,7 +76,7 @@ class PerformanceLogger(TorchDispatchMode):
                     self._register_hook(name, m)
 
         # for gpu profilig with cpp extension, for xpu profiling is not necessary
-        if cpp_extend:
+        if enable_cpp_extend:
             from .. import Hook
 
             print("Install hook...")
@@ -98,7 +96,7 @@ class PerformanceLogger(TorchDispatchMode):
 
     def __enter__(self):
         print("Enter performance logger...")
-        if cpp_extend:
+        if enable_cpp_extend:
             from .. import Hook
 
             Hook.cuda_profiler_start()
@@ -108,20 +106,20 @@ class PerformanceLogger(TorchDispatchMode):
             self._pt_impls[k] = impl
             setattr(torch.Tensor, k, TorchFuncMockNoDispatch(impl))
         super().__enter__()
-        # if cpp_extend:
+        # if enable_cpp_extend:
         #     from .. import Hook
         # print("Performance logging entered at: {} ns".format(Hook.get_current_time()))
 
     def __exit__(self, exc_type=None, exc_value=None, traceback=None):
         print("Exit performance logger...")
-        if cpp_extend:
+        if enable_cpp_extend:
             from .. import Hook
 
             Hook.cuda_profiler_end()
         for k in TENSOR_FUNCS_NO_DISPATCH:
             setattr(torch.Tensor, k, self._pt_impls[k])
         super().__exit__(exc_type, exc_value, traceback)
-        # if cpp_extend:
+        # if enable_cpp_extend:
         #     from .. import Hook
         # print("Performance logging exited at: {} ns".format(Hook.get_current_time()))
 
@@ -191,7 +189,7 @@ class PerformanceLogger(TorchDispatchMode):
             torch.cuda.synchronize()
             #  insert pre-op delimiter
             print("[START_SYMBOL]: {} ns".format(str(op)), flush=True)
-            # if cpp_extend:
+            # if enable_cpp_extend:
             #     from .. import Hook
             #     print("{} start at: {}".format(str(op), Hook.get_current_time()))
             # for debug
@@ -203,7 +201,7 @@ class PerformanceLogger(TorchDispatchMode):
             # call op
             output = op(*args, **kwargs)
             torch.cuda.synchronize()
-            # if cpp_extend:
+            # if enable_cpp_extend:
             #     from .. import Hook
             #     print("{} end at: {} ns".format(str(op), Hook.get_current_time()))
             #  insert after-op delimiter
