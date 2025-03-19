@@ -14,6 +14,7 @@ enum class HookType {
     kDUMP,
     kPROFILE,
     kACCUMULATE_KERNEL_TIME,
+    kDEBUG,
 };
 
 struct HookInfo {

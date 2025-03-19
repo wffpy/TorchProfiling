@@ -104,6 +104,7 @@ PYBIND11_MODULE(Hook, m) {
         .value("kDUMP", cfunc_hook::HookType::kDUMP)
         .value("kPROFILE", cfunc_hook::HookType::kPROFILE)
         .value("kACCUMULATE_KERNEL_TIME", cfunc_hook::HookType::kACCUMULATE_KERNEL_TIME)
+        .value("kDUBUG", cfunc_hook::HookType::kDEBUG)
         .export_values();
     init_hook(m);
 }
