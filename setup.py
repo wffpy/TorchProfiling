@@ -38,7 +38,8 @@ class CMakeBuild(build_ext):
         enable_xpu = os.environ.get("XPU_DEV")
 
         cmake_args = [
-            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name))),
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY="
+            + os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name))),
             "-DPYTHON_EXECUTABLE=" + sys.executable,
             "-DCMAKE_INSTALL_PREFIX="
             + os.path.join(
@@ -67,7 +68,9 @@ class CMakeBuild(build_ext):
         build_dir = os.path.abspath(os.path.join(self.build_temp, ext.name))
         os.makedirs(build_dir, exist_ok=True)
 
-        subprocess.check_call(["cmake", f"{script_dir}"] + cmake_args + ninja_args, cwd=build_dir)
+        subprocess.check_call(
+            ["cmake", f"{script_dir}"] + cmake_args + ninja_args, cwd=build_dir
+        )
         print(f"cmake build_dir {build_dir}")
         subprocess.check_call(["cmake", "--build", "."], cwd=build_dir)
 
@@ -75,10 +78,10 @@ class CMakeBuild(build_ext):
 class InstallLibWithPTH(install_lib):
     def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
-        path = os.path.join(os.path.dirname(__file__), "module_logging.pth")
-        dest = os.path.join(self.install_dir, os.path.basename(path))
-        self.copy_file(path, dest)
-        self.outputs = [dest]
+        # path = os.path.join(os.path.dirname(__file__), "module_logging.pth")
+        # dest = os.path.join(self.install_dir, os.path.basename(path))
+        # self.copy_file(path, dest)
+        # self.outputs = [dest]
 
 
 def regular_setup():
@@ -94,10 +97,12 @@ def regular_setup():
         # install_requires=[
         #    "torch",
         # ],
-        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
-        # cmdclass={
-        #     "install_lib": InstallLibWithPTH,
-        # },
+        entry_points={
+            "console_scripts": ["module_logging = module_logging.__main__:main"]
+        },
+        cmdclass={
+            "install_lib": InstallLibWithPTH,
+        },
         zip_safe=False,
     )
 
@@ -115,11 +120,13 @@ def cpp_extend_setup():
         # install_requires=[
         #     "prettytable",
         # ],
-        entry_points={"console_scripts": ["module_logging = module_logging.__main__:main"]},
+        entry_points={
+            "console_scripts": ["module_logging = module_logging.__main__:main"]
+        },
         ext_modules=[
             CMakeExtension("module_logging.Hook"),
         ],
-        # cmdclass=dict(build_ext=CMakeBuild, install_lib=InstallLibWithPTH),
+        cmdclass=dict(build_ext=CMakeBuild, install_lib=InstallLibWithPTH),
         zip_safe=False,
     )
 

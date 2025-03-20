@@ -60,7 +60,9 @@ class PerformanceLogger(TorchDispatchMode):
         enable_prof_env = os.environ.get("ENABLE_PROFILING", None)
         self.enable_profiling = False
         if enable_prof_env is not None:
-            self.enable_profiling = enable_prof_env == "True" or enable_prof_env == "true"
+            self.enable_profiling = (
+                enable_prof_env == "True" or enable_prof_env == "true"
+            )
 
         self.profiling_bw = profiling_bw
         # traverse modules and register forward and backward hooks for each
@@ -188,10 +190,7 @@ class PerformanceLogger(TorchDispatchMode):
         if self.enable_profiling:
             torch.cuda.synchronize()
             #  insert pre-op delimiter
-            print("[START_SYMBOL]: {} ns".format(str(op)), flush=True)
-            # if enable_cpp_extend:
-            #     from .. import Hook
-            #     print("{} start at: {}".format(str(op), Hook.get_current_time()))
+            print("[START_SYMBOL]: {}".format(str(op)), flush=True)
             # for debug
             Logger.debug(
                 "[START_SYMBOL]: {}, counter: {}, pid: {}, tid: {}".format(
@@ -201,9 +200,6 @@ class PerformanceLogger(TorchDispatchMode):
             # call op
             output = op(*args, **kwargs)
             torch.cuda.synchronize()
-            # if enable_cpp_extend:
-            #     from .. import Hook
-            #     print("{} end at: {} ns".format(str(op), Hook.get_current_time()))
             #  insert after-op delimiter
             print("[END_SYMBOL]: {}".format(str(op)), flush=True)
             # for debug
