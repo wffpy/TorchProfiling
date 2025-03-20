@@ -210,7 +210,7 @@ class PerformanceLogger(TorchDispatchMode):
             )
             self.counter += 1
         else:
-            return op(*args, **kwargs)
+            output = op(*args, **kwargs)
         self.lock.release()
         return output
 
