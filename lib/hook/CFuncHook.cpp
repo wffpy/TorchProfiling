@@ -88,7 +88,7 @@ PltInfoVec collect_plt() {
     return plt_info_vec;
 }
 
-void install_hook(HookType category) {
+void install_got_hook(HookType category) {
     static HookRegistrar *reg = HookRegistrar::instance();
     reg->set_current_category(category);
     static int64_t counter = 0;
@@ -131,7 +131,17 @@ void install_hook(HookType category) {
 
 HookRegistrar::HookRegistrar() : hook_num_(0), current_category_(HookType::kNONE) {}
 
+HookRegistrar::~HookRegistrar() {
+    for (auto iter : origin_func_map_) {
+        if (iter.second != nullptr) {
+            free(iter.second);
+        }
+    }
+}
+
 void HookRegistrar::register_hook(const HookType& category, HookInfo hook) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    origin_func_map_[hook.sym_name] = hook.origin_func;
     hooks_[category].push_back(std::make_shared<HookInfo>(hook));
     hook_num_++;
 }
@@ -174,12 +184,32 @@ void HookRegistrar::try_get_origin_func(std::string lib_name) {
     }
 }
 
+void* HookRegistrar::get_origin_func(std::string func_name) {
+    auto iter = origin_func_map_.find(func_name);
+    if (iter != origin_func_map_.end()) {
+        DLOG() << "find origin func: " << func_name;
+        return *(iter->second);
+    }
+    DLOG() << "not find origin func: ";
+    return nullptr;
+}
+
 HookRegistration::HookRegistration(HookType category, std::string name, void *new_func,
                                    void **old_func) {
     static HookRegistrar *reg = HookRegistrar::instance();
     reg->register_hook(category, HookInfo{name, new_func, old_func});
 }
 
+void register_got_hook(HookType category, std::string name, void *new_func) {
+    void **old_func = new void *;
+    static HookRegistrar *reg = HookRegistrar::instance();
+    reg->register_hook(category, HookInfo{name, new_func, old_func});
+}
+
+int64_t get_origin_func(std::string sym) {
+    static HookRegistrar *reg = HookRegistrar::instance();
+    return (int64_t)(reg->get_origin_func(sym));
+}
 
 int analysis_lib_name(struct dl_phdr_info *info, size_t size, void *data) {
     const char *lib_name = info->dlpi_name;
@@ -187,6 +217,7 @@ int analysis_lib_name(struct dl_phdr_info *info, size_t size, void *data) {
     vec->emplace_back(lib_name);
     return 0;
 }
+
 std::vector<std::string> get_libs() {
     std::vector<std::string> lib_vec;
     dl_iterate_phdr(analysis_lib_name, (void *)&lib_vec);

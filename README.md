@@ -238,3 +238,32 @@ tensor_tracer.__exit__()
 #### Disadvantage
 The traced tensor will not be released until the end of program.
 
+### 7. Hook C Func In Python (GOT Mode)
+To simplify the hook process, support hook C function in Python.  
+Up to now, just support hook c/c++ function with GOT mode. It means the function symbol is eported from a shared library.
+```
+import module_logging.Hook as hook
+import ctypes
+import torch
+import torch_xmlir
+import pybind11
+
+
+def py_get_device_properties(ptr, dev_attr, dev_id):
+    print("device_id: {}".format(dev_id))
+    print("py_get_device_properties called!")
+    func_name = "xpu_device_get_attr"
+    origin_func = hook.get_origin_func(func_name)
+    origin_func_ptr = ctypes.cast(origin_func, ctypes.c_void_p).value
+    py_origin_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)(origin_func_ptr)
+    ret = py_origin_func(ptr, dev_attr, dev_id)
+    print("ret: {}".format(ret))
+    return ret
+
+py_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)(py_get_device_properties)
+capsule = ctypes.pythonapi.PyCapsule_New(ctypes.cast(py_func, ctypes.c_void_p).value, None, None)
+
+hook.register_got_hook(hook.HookType.kDUBUG, "xpu_device_get_attr", capsule)
+hook.install_hook(hook.HookType.kDUBUG)
+total_memory = torch_xmlir.xpu.get_device_properties(0).total_memory
+```

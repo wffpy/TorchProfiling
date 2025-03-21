@@ -18,7 +18,7 @@ void init_hook(pybind11::module& m) {
         cpu_hook::register_cpu_hook();
         gpu_profiler::register_gpu_hook();
 
-        cfunc_hook::install_hook(hook_category);
+        cfunc_hook::install_got_hook(hook_category);
         local_hook::install_local_hooks();
     });
 
@@ -95,6 +95,17 @@ void init_hook(pybind11::module& m) {
     m.def("profiling_accumulation_set_dump_json_path", [](char* path) {
         std::string path_str(path);
         profiling_accumulator::set_profiling_dump_file(path_str);
+    });
+
+    m.def("register_got_hook", [](cfunc_hook::HookType hook_category, char* func_sym, py::capsule capsule){
+        std::string name(func_sym);
+        void* new_func = capsule;
+        cfunc_hook::register_got_hook(hook_category, name, new_func);
+    });
+
+    m.def("get_origin_func", [](char* func_sym) {
+        std::string name(func_sym);
+        return cfunc_hook::get_origin_func(name);
     });
 }
 
