@@ -380,7 +380,7 @@ class AtenOpAnalyzer(Analyzer):
             self.collection_state == STATE.FORMAL or self.collection_state == STATE.MODULE
         ) and "[START_SYMBOL]" in line:
             Logger.debug("Op Start")
-            if "c10d" in line:
+            if "c10d" in line or "cast_bf16" in line:
                 return False
             else:
                 self.collection_state = STATE.OP
@@ -430,7 +430,6 @@ class AtenOpAnalyzer(Analyzer):
                 match = re.search(r'(\d+)\s+ns$', line)
                 if match:
                     self.current_op.set_time(float(match.group(1)) / 1000000)
-                # self.current_op.set_time(float(line.split(" ")[-2]) / 1000000)
 
             return True
         elif (
@@ -445,11 +444,11 @@ class AtenOpAnalyzer(Analyzer):
                     extention_op_time = float(match.group(1)) / 1000000
 
                 extention_op_name = demangle(line.split(" ")[1])
+                if "cast" in extention_op_name or "findmax" in extention_op_name:
+                    return False
                 match = re.search(r'(_Z[\w\d_]+)', line)
                 if match:
                     extention_op_name = match.group(1)
-                if "cast" in extention_op_name:
-                    extention_op_name = "xpu_custom"
                 self.current_op = AtenOp(extention_op_name, self.current_m_name)
                 self.current_op.set_time(extention_op_time)
                 self.op_or_module.append(self.current_op)

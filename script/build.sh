@@ -9,9 +9,9 @@ if [ "$(id -u)" -ne 0 ]; then
     SUDO_CMD="sudo"
 fi
 
-# 使用 SUDO_CMD 执行 apt 命令
-$SUDO_CMD apt update || true
-$SUDO_CMD apt install libcapstone-dev ninja-build || true
+# # 使用 SUDO_CMD 执行 apt 命令
+# $SUDO_CMD apt update || true
+# $SUDO_CMD apt install libcapstone-dev ninja-build || true
 
 project_dir=$(git rev-parse --show-toplevel)
 cd ${project_dir}
@@ -23,4 +23,4 @@ ls -thl dist
 echo -e "Y" | pip uninstall module_logging
 
 echo "=========install new package=============="
-pip install dist/module_logging-1.0.0-cp38-cp38-linux_x86_64.whl
+pip install --force-reinstall dist/module_logging-*-cp*-cp*-linux_x86_64.whl

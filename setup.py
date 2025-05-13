@@ -87,7 +87,7 @@ class InstallLibWithPTH(install_lib):
 def regular_setup():
     setup(
         name="module_logging",
-        version="1.0.0",
+        version="1.0.1",
         author="Eric.Wang",
         author_email="https://github.com/wffpy/TorchProfiling",
         description="logging on moudle and aten op level",
@@ -110,7 +110,7 @@ def regular_setup():
 def cpp_extend_setup():
     setup(
         name="module_logging",
-        version="1.0.0",
+        version="1.0.1",
         author="Eric.Wang",
         author_email="https://github.com/wffpy/TorchProfiling",
         description="logging on moudle and aten op level",
