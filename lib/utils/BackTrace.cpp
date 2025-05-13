@@ -166,7 +166,20 @@ void Tracer::print() {
     char **strings = backtrace_symbols(stack.data(), real_size);
     LOG() << "Stack Trace: ";
     for (int i = 0; i < real_size; ++i) {
-        std::cout << strings[i] << std::endl;
+        std::string symbol(strings[i]);
+        std::string func_name = symbol;
+        // 提取 mangled 名
+        size_t begin = symbol.find('(');
+        size_t end   = symbol.find('+');
+        if (begin != std::string::npos && end != std::string::npos) {
+            std::string mangled = symbol.substr(begin + 1, end - begin - 1);
+            int status;
+            char* demangled = abi::__cxa_demangle(mangled.c_str(), nullptr, nullptr, &status);
+            if (status == 0 && demangled != nullptr) {
+                func_name = symbol.substr(0, begin + 1) + demangled + symbol.substr(end);
+            }
+        }
+        std::cout << func_name << std::endl;
     }
     free(strings);
 }

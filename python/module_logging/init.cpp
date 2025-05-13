@@ -8,6 +8,7 @@
 #include "utils/Timer/Timer.h"
 #include "utils/Lock/FileLock.h"
 #include "utils/Recorder/Recorder.h"
+#include "utils/BackTrace.h"
 #include <iostream>
 
 namespace py = pybind11;
@@ -109,6 +110,11 @@ void init_hook(pybind11::module& m) {
     });
 }
 
+void bind_class (py::module& m) {
+    py::class_<trace::Tracer>(m, "Tracer")
+        .def(py::init<std::string>());
+}
+
 PYBIND11_MODULE(Hook, m) {
     py::enum_<cfunc_hook::HookType>(m, "HookType")
         .value("kNONE", cfunc_hook::HookType::kNONE)
@@ -118,4 +124,5 @@ PYBIND11_MODULE(Hook, m) {
         .value("kDUBUG", cfunc_hook::HookType::kDEBUG)
         .export_values();
     init_hook(m);
+    bind_class(m);
 }
