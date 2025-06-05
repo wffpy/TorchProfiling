@@ -55,7 +55,9 @@ def compute_rmse(tensor1, tensor2):
 
 def compute_mape(tensor1, tensor2):
     epsilon = 1e-10
-    absolute_percentage_error = torch.abs((tensor1 - tensor2) / (tensor1 + epsilon)) * 100
+    absolute_percentage_error = (
+        torch.abs((tensor1 - tensor2) / (tensor1 + epsilon)) * 100
+    )
     mape = torch.mean(absolute_percentage_error)
     return mape.item()
 
@@ -85,7 +87,9 @@ def compare(path1, path2):
     lhs_tensor_num = len(lhs_keys)
     rhs_tensor_num = len(rhs_keys)
 
-    assert lhs_tensor_num == rhs_tensor_num, "lhs and rhs tensor number not equal, {} vs {}.".format(
+    assert (
+        lhs_tensor_num == rhs_tensor_num
+    ), "lhs and rhs tensor number not equal, {} vs {}.".format(
         lhs_tensor_num, rhs_tensor_num
     )
 
@@ -104,7 +108,11 @@ def compare(path1, path2):
         flat_rhs = rhs.to(torch.float32).view(-1)
 
         if flat_rhs.shape != flat_lhs.shape:
-            print("skipping shape different op: {}, lhs shape: {}, rhs shape: {}".format(key, lhs.shape, rhs.shape))
+            print(
+                "skipping shape different op: {}, lhs shape: {}, rhs shape: {}".format(
+                    key, lhs.shape, rhs.shape
+                )
+            )
             continue
 
         cos = cosin(flat_lhs, flat_rhs)
