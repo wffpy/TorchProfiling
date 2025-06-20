@@ -1,2 +1,3 @@
-add_library(LocalHook STATIC LocalHook.cpp)
-# target_link_libraries(LocalHook PRIVATE capstone)
+if ((CUDA_DEV STREQUAL TRUE) AND CUDA_FOUND)
+    add_library(LocalHook STATIC LocalHook.cpp)
+endif()

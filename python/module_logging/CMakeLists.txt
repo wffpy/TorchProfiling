@@ -8,18 +8,19 @@ target_link_libraries(Hook PRIVATE hook)
 target_link_libraries(Hook PRIVATE CpuHook)
 target_link_libraries(Hook PRIVATE Util)
 target_link_libraries(Hook PRIVATE GpuHook)
-target_link_libraries(Hook PRIVATE LocalHook)
 target_link_libraries(Hook PRIVATE Dump)
 
-if (USE_CAPSTONE STREQUAL TRUE)
-    target_link_libraries(Hook PRIVATE capstone)
-endif()
+# if (USE_CAPSTONE STREQUAL TRUE)
+#     target_link_libraries(Hook PRIVATE capstone)
+# endif()
 
 target_include_directories(Hook PUBLIC ${Python3_INCLUDE_DIRS})
 
 target_link_libraries(Hook PRIVATE ${Python3_LIBRARIES})
 
 if ((CUDA_DEV STREQUAL TRUE) AND CUDA_FOUND)
+    target_link_libraries(Hook PRIVATE LocalHook)
+    target_link_libraries(Hook PRIVATE capstone)
     target_link_libraries(Hook PRIVATE ${CUDA_LIBRARIES})
     set (CUDA_LINK_PATH /usr/local/cuda/lib64/) 
     target_link_directories(Hook PRIVATE ${CUDA_LINK_PATH})
