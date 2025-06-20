@@ -184,10 +184,11 @@ class PerformanceLogger(TorchDispatchMode):
             module.register_full_backward_hook(self.post_backward_hook_wrapper(name))
 
     def __torch_dispatch__(self, op, types, args=(), kwargs=None):
-        self.lock.acquire()
+        output = None
         if kwargs is None:
             kwargs = {}
         if self.enable_profiling:
+            self.lock.acquire()
             torch.cuda.synchronize()
             #  insert pre-op delimiter
             print("[START_SYMBOL]: {}".format(str(op)), flush=True)
@@ -209,9 +210,9 @@ class PerformanceLogger(TorchDispatchMode):
                 )
             )
             self.counter += 1
+            self.lock.release()
         else:
             output = op(*args, **kwargs)
-        self.lock.release()
         return output
 
 
