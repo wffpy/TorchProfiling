@@ -41,6 +41,8 @@ class CpuHookWrapper {
     static int local_stream_wait_event(void *stream, void *event);
     static int local_cudaStreamWaitEvent(void*, void*, unsigned int);
     static int local_cudaStreamRecord(void*, void*);
+    static int local_cudaMalloc(void** devPtr, size_t size);
+
 
     int (*origin_launch_async_)(void *) = nullptr;
     int (*origin_launch_config_)(int, int, void *) = nullptr;
@@ -54,6 +56,8 @@ class CpuHookWrapper {
     int (*origin_stream_wait_event_)(void *, void*) = nullptr;
     int (*origin_cudaStreamWaitEvent_)(void*, void*, unsigned int) = nullptr;
     int (*origin_cudaStreamRecord_)(void*, void*) = nullptr;
+
+    int (*origin_cudaMalloc_)(void**, size_t) = nullptr;
 
     static std::string runtime_api_name;
 };
@@ -277,7 +281,18 @@ int CpuHookWrapper::local_accumulated_fprintf(void* stream, const char* format, 
     }
     return 0;
 }
-
+int CpuHookWrapper::local_cudaMalloc(void** devPtr, size_t size) {
+    trace::Tracer tracer(__FUNCTION__);
+    std::cout << "size: " << size << std::endl;
+    auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
+    int ret = 0;
+    if (wrapper_instance->origin_cudaMalloc_ != nullptr) {
+        ret = wrapper_instance->origin_cudaMalloc_(devPtr, size);
+    } else {
+        ELOG() << "origin local cudaMalloc is nullptr";
+    }
+    return ret;
+}
 
 REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_launch_async_);
@@ -305,6 +320,10 @@ REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, cudaStreamWaitEvent,
 
 REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, xpu_wait, (void *)CpuHookWrapper::local_xpu_wait,
              (void **)&origin_xpu_wait_);
+
+// REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, cudaMalloc, (void *)CpuHookWrapper::local_cudaMalloc,
+//              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_cudaMalloc_);
+
 
 // REGISTERHOOK(cfunc_hook::HookType::kPROFILE,
 //     dlsym, (void *)CpuHookWrapper::local_dlsym,

@@ -179,7 +179,10 @@ class TensorInfoRecorder(TorchDispatchMode):
 
             for i in range(len(input_tensors)):
                 cur_tensor = input_tensors[i]
-                Hook.record_tensor(cur_tensor.data_ptr(), cur_tensor.element_size() * cur_tensor.nelement())
+                Hook.record_tensor(
+                    cur_tensor.data_ptr(),
+                    cur_tensor.element_size() * cur_tensor.nelement(),
+                )
 
         # call op
         output = op(*args, **kwargs)

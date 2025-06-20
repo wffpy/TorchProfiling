@@ -40,18 +40,36 @@ def module_hook(fullname, module):
     if fullname == "torch":
         # module.autograd.backward = func_wrapper(module.autograd.backward)
 
-        module.distributed.broadcast = func_torch_distributed_wrapper(module.distributed.broadcast)
-        module.distributed.all_reduce = func_torch_distributed_wrapper(module.distributed.all_reduce)
-        module.distributed.reduce = func_torch_distributed_wrapper(module.distributed.reduce)
-        module.distributed.all_gather = func_torch_distributed_wrapper(module.distributed.all_gather)
+        module.distributed.broadcast = func_torch_distributed_wrapper(
+            module.distributed.broadcast
+        )
+        module.distributed.all_reduce = func_torch_distributed_wrapper(
+            module.distributed.all_reduce
+        )
+        module.distributed.reduce = func_torch_distributed_wrapper(
+            module.distributed.reduce
+        )
+        module.distributed.all_gather = func_torch_distributed_wrapper(
+            module.distributed.all_gather
+        )
         # module.distributed._allgather_base= func_torch_distributed_wrapper(
         #     module.distributed._allgather_base
         # )
-        module.distributed.gather = func_torch_distributed_wrapper(module.distributed.gather)
-        module.distributed.scatter = func_torch_distributed_wrapper(module.distributed.scatter)
-        module.distributed.reduce_scatter = func_torch_distributed_wrapper(module.distributed.reduce_scatter)
-        module.distributed.send = func_torch_distributed_wrapper(module.distributed.send)
-        module.distributed.recv = func_torch_distributed_wrapper(module.distributed.recv)
+        module.distributed.gather = func_torch_distributed_wrapper(
+            module.distributed.gather
+        )
+        module.distributed.scatter = func_torch_distributed_wrapper(
+            module.distributed.scatter
+        )
+        module.distributed.reduce_scatter = func_torch_distributed_wrapper(
+            module.distributed.reduce_scatter
+        )
+        module.distributed.send = func_torch_distributed_wrapper(
+            module.distributed.send
+        )
+        module.distributed.recv = func_torch_distributed_wrapper(
+            module.distributed.recv
+        )
 
 
 def func_wrapper(func):

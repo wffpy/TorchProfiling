@@ -105,7 +105,12 @@ class TensorInfo:
         mean_v = torch.mean(cpu_t).item()
         std_v = torch.std(cpu_t).item()
 
-        if max_v != self.max or min_v != self.min or mean_v != self.mean or std_v != self.std:
+        if (
+            max_v != self.max
+            or min_v != self.min
+            or mean_v != self.mean
+            or std_v != self.std
+        ):
             table = pt.PrettyTable(
                 [
                     "Tensor",
@@ -291,7 +296,9 @@ class TensorTracer(TorchDispatchMode):
                         self.trace(name, param, trace_type)
             else:
                 raise TypeError(
-                    "Expected `model` to be an instance of `torch.nn.Module` or `list`, but got {}.".format(type(model))
+                    "Expected `model` to be an instance of `torch.nn.Module` or `list`, but got {}.".format(
+                        type(model)
+                    )
                 )
 
     def start(self):

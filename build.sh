@@ -1,26 +1,47 @@
-set -e  # 遇到错误立即退出
-set -o pipefail
+#!/bin/bash
+set -euo pipefail  # 更安全（-x 可按需开启调试）
 
-PACKAGE_NAME="module_logging"
+#================= [1] 设置 SUDO 命令 =================#
+SUDO_CMD=""
+if [ "$(id -u)" -ne 0 ]; then
+    SUDO_CMD="sudo"
+fi
 
-echo "========= [1/5] Clean dist/ directory ========="
-rm -rf dist/*
-echo "✔️ Cleaned dist/"
+#================= [2] 安装依赖（可失败） ==============#
+# echo ">>> Installing system dependencies..."
+# $SUDO_CMD apt update || echo "apt update failed"
+# $SUDO_CMD apt install -y libcapstone-dev ninja-build || echo "apt install failed"
 
-echo "========= [2/5] Build wheel package =========="
-python setup.py sdist bdist_wheel > /dev/null
-echo "✔️ Build complete"
+#================= [3] 回到项目根目录 =================#
+echo ">>> Locating project root..."
+project_dir=$(git rev-parse --show-toplevel)
+cd "$project_dir"
 
-echo "========= [3/5] Uninstall existing package ===="
-pip show $PACKAGE_NAME > /dev/null 2>&1 && {
-    pip uninstall -y $PACKAGE_NAME
-    echo "✔️ Uninstalled existing $PACKAGE_NAME"
-} || {
-    echo "ℹ️ $PACKAGE_NAME not installed, skipping uninstall"
-}
+#================= [4] 构建 wheel 包 ==================#
+echo ">>> Building wheel package..."
+python setup.py bdist_wheel
 
-echo "========= [4/5] Install newly built package ==="
-pip install --force-reinstall dist/*.whl
-echo "✔️ Install complete"
+echo ">>> Built packages:"
+ls -thl dist
 
-echo "========= [5/5] Done =========================="
+#================= [5] 卸载旧版本 =====================#
+if pip show module_logging > /dev/null 2>&1; then
+    echo ">>> Uninstalling existing module_logging..."
+    pip uninstall -y module_logging
+else
+    echo ">>> module_logging not installed, skipping uninstall."
+fi
+
+#================= [6] 安装新构建包 ===================#
+echo ">>> Installing new package..."
+WHL_FILE=$(ls dist/module_logging-*-cp*-cp*-linux_x86_64.whl | head -n 1)
+
+if [ -f "$WHL_FILE" ]; then
+    pip install --force-reinstall "$WHL_FILE"
+    echo "✔️ Installed $WHL_FILE"
+else
+    echo "❌ No matching wheel found to install."
+    exit 1
+fi
+
+echo "✅ Done!"

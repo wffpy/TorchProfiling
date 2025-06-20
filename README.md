@@ -250,12 +250,18 @@ import pybind11
 
 
 def py_get_device_properties(ptr, dev_attr, dev_id):
-    print("device_id: {}".format(dev_id))
-    print("py_get_device_properties called!")
+    # optional: for printing c++ backtrace
+    hook.Tracer("get_device_properties")
+
+    # origin func name
     func_name = "xpu_device_get_attr"
+    # 获取 原始的函数地址
     origin_func = hook.get_origin_func(func_name)
+    # cast origin function to a ctypes function pointer
     origin_func_ptr = ctypes.cast(origin_func, ctypes.c_void_p).value
+    # cast the origin function pointer to a ctypes function
     py_origin_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_int)(origin_func_ptr)
+    # 调用原始函数
     ret = py_origin_func(ptr, dev_attr, dev_id)
     print("ret: {}".format(ret))
     return ret
