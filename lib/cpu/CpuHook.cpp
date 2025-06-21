@@ -281,9 +281,9 @@ int CpuHookWrapper::local_accumulated_fprintf(void* stream, const char* format, 
     }
     return 0;
 }
+
 int CpuHookWrapper::local_cudaMalloc(void** devPtr, size_t size) {
     trace::Tracer tracer(__FUNCTION__);
-    std::cout << "size: " << size << std::endl;
     auto wrapper_instance = SingletonCpuHookWrapper::instance().get_elem();
     int ret = 0;
     if (wrapper_instance->origin_cudaMalloc_ != nullptr) {
@@ -294,52 +294,52 @@ int CpuHookWrapper::local_cudaMalloc(void** devPtr, size_t size) {
     return ret;
 }
 
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, xpu_launch_async, (void *)CpuHookWrapper::local_launch_async,
              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_launch_async_);
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, xpu_launch_config, (void *)CpuHookWrapper::local_launch_config,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, xpu_launch_config, (void *)CpuHookWrapper::local_launch_config,
              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_launch_config_);
-// REGISTERHOOK(cfunc_hook::HookType::kPROFILE, xpu_launch_argument_set,
+// REGISTERHOOK(cfunc_hook::HookType::kDEBUG, xpu_launch_argument_set,
 //              (void *)CpuHookWrapper::local_launch_arg_set,
 //              (void **)&SingletonCpuHookWrapper::instance()
 //                  .get_elem()
 //                  ->origin_launch_arg_set_);
 
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, xpu_event_record, (void *)CpuHookWrapper::local_event_record,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, xpu_event_record, (void *)CpuHookWrapper::local_event_record,
              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_event_record_);
 
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, xpu_stream_event_wait,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, xpu_stream_event_wait,
              (void *)CpuHookWrapper::local_stream_wait_event,
              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_stream_wait_event_);
 
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, cudaEventRecord, (void *)CpuHookWrapper::local_cudaStreamRecord,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, cudaEventRecord, (void *)CpuHookWrapper::local_cudaStreamRecord,
              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_cudaStreamRecord_);
 
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, cudaStreamWaitEvent,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, cudaStreamWaitEvent,
              (void *)CpuHookWrapper::local_cudaStreamWaitEvent,
              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_cudaStreamWaitEvent_);
 
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, xpu_wait, (void *)CpuHookWrapper::local_xpu_wait,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, xpu_wait, (void *)CpuHookWrapper::local_xpu_wait,
              (void **)&origin_xpu_wait_);
 
-// REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, cudaMalloc, (void *)CpuHookWrapper::local_cudaMalloc,
-//              (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_cudaMalloc_);
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, cudaMalloc, (void *)CpuHookWrapper::local_cudaMalloc,
+             (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_cudaMalloc_);
 
 
-// REGISTERHOOK(cfunc_hook::HookType::kPROFILE,
+// REGISTERHOOK(cfunc_hook::HookType::kDEBUG,
 //     dlsym, (void *)CpuHookWrapper::local_dlsym,
 //     (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_dlsym_);
 
-// REGISTERHOOK(cfunc_hook::HookType::kPROFILE,
+// REGISTERHOOK(cfunc_hook::HookType::kDEBUG,
 //     dlopen, (void *)CpuHookWrapper::local_dlopen,
 //     (void **)&SingletonCpuHookWrapper::instance().get_elem()->origin_dlopen_);
 
-// REGISTERHOOK(cfunc_hook::HookType::kPROFILE, printf, (void *)CpuHookWrapper::local_print,
+// REGISTERHOOK(cfunc_hook::HookType::kDEBUG, printf, (void *)CpuHookWrapper::local_print,
 //     (void**)&SingletonCpuHookWrapper::instance().get_elem()->origin_print_);
 
 // REGISTER_LOCAL_HOOK(printf,  (void *)CpuHookWrapper::local_print,
 //     (void**)&SingletonCpuHookWrapper::instance().get_elem()->origin_print_);
 
-REGISTERHOOK(cfunc_hook::HookType::kPROFILE, kPROFILE, fprintf, (void *)CpuHookWrapper::local_fprintf,
+REGISTERHOOK(cfunc_hook::HookType::kDEBUG, kDEBUG, fprintf, (void *)CpuHookWrapper::local_fprintf,
              (void**)&SingletonCpuHookWrapper::instance().get_elem()->origin_fprintf_);
 
 REGISTERHOOK(cfunc_hook::HookType::kACCUMULATE_KERNEL_TIME, kACCUMULATE_KERNEL_TIME, fprintf,

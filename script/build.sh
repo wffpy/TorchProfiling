@@ -60,10 +60,6 @@ else
     echo ">>> module_logging not installed, skipping uninstall."
 fi
 
-<<<<<<< HEAD
-echo "=========install new package=============="
-pip install --force-reinstall dist/module_logging-*-cp*-cp*-linux_x86_64.whl
-=======
 #================= [6] 安装新构建包 ===================#
 echo ">>> Installing new package..."
 WHL_FILE=$(ls dist/module_logging-*-cp*-cp*-linux_x86_64.whl | head -n 1)
@@ -77,4 +73,3 @@ else
 fi
 
 echo "✅ Done!"
->>>>>>> main

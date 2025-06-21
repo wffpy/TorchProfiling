@@ -2,7 +2,6 @@
 #include "utils/Utils.h"
 #include "utils/Log/Log.h"
 #include "utils/ConsoleTable/ConsoleTable.h"
-// #include "utils/Timer/Timer.h"
 #include <cstdlib>
 #include <cxxabi.h>
 #include <dlfcn.h>
@@ -10,10 +9,64 @@
 #include <iostream>
 #include <mutex>
 #include <regex>
+#include <Python.h>
+#include <frameobject.h>
+#include <string>
 
 using namespace trace;
 using namespace console_table;
 using namespace std::chrono;
+std::string get_python_backtrace_with_gil() {
+    std::string backtrace;
+    
+    // 保存当前 GIL 状态
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    
+    try {
+        // 获取当前线程状态
+        PyThreadState* tstate = PyThreadState_Get();
+        if (!tstate) {
+            backtrace = "No Python thread state available";
+        } else {
+            // 获取当前帧
+            PyFrameObject* frame = tstate->frame;
+            if (!frame) {
+                backtrace = "No Python frame available";
+            } else {
+                int depth = 0;
+                const int max_depth = 100;
+                
+                while (frame && depth < max_depth) {
+                    // 获取文件名
+                    const char* filename = PyUnicode_AsUTF8(frame->f_code->co_filename);
+                    if (!filename) filename = "<unknown>";
+                    
+                    // 获取函数名
+                    const char* funcname = PyUnicode_AsUTF8(frame->f_code->co_name);
+                    if (!funcname) funcname = "<unknown>";
+                    
+                    // 获取行号
+                    int lineno = PyFrame_GetLineNumber(frame);
+                    
+                    // 格式化输出
+                    backtrace += "  File \"" + std::string(filename) + "\", line " + 
+                                std::to_string(lineno) + ", in " + std::string(funcname) + "\n";
+                    
+                    // 移动到上一帧
+                    frame = frame->f_back;
+                    depth++;
+                }
+            }
+        }
+    } catch (...) {
+        backtrace = "Exception occurred while getting backtrace";
+    }
+    
+    // 恢复 GIL 状态
+    PyGILState_Release(gstate);
+    
+    return backtrace;
+}
 
 class Recorder {
   public:
@@ -71,6 +124,7 @@ typedef utils::Singleton<Recorder> RecorderSingleton;
 
 // get the lib name from path
 std::string get_file_from_path(const std::string path) {
+   return path;
     std::string lib_name = "";
     std::regex re("[^/\\\\]+$");
     std::smatch match;
@@ -181,5 +235,7 @@ void Tracer::print() {
         }
         std::cout << func_name << std::endl;
     }
+    std::string py_backtrace = get_python_backtrace_with_gil();
+    std::cout << py_backtrace << std::endl;
     free(strings);
 }

@@ -200,7 +200,6 @@ class PerformanceLogger(TorchDispatchMode):
             )
             # call op
             output = op(*args, **kwargs)
-            torch.cuda.synchronize()
             #  insert after-op delimiter
             print("[END_SYMBOL]: {}".format(str(op)), flush=True)
             # for debug

@@ -12,7 +12,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#ifdef USE_CAPSTONE
+#ifdef __x86_64__
 #include "capstone/capstone.h"
 #include "capstone/x86.h"
 #endif
@@ -32,7 +32,6 @@ namespace local_hook {
 #define ENDBR_INST 0xfa1e0ff3
 #define NOP_INST 0x90
 
-#endif
 
 uintptr_t find_free_address(uintptr_t aligned_addr, size_t size) {
     pid_t pid = getpid();
@@ -867,8 +866,12 @@ LocalHookRegistration::LocalHookRegistration(std::string symbol, void *new_func,
         {symbol, new_func, trampoline, false});
 }
 
+#endif
 void install_local_hooks() {
+
+#ifdef __x86_64__
     LocalHookRegistrarSingleton::instance().get_elem()->install();
+#endif
 }
 
 } // namespace local_hook

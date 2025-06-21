@@ -156,6 +156,9 @@ const HookList HookRegistrar::get_hooks() {
     if (current_category_ == HookType::kNONE) {
         return {};
     }
+    if (hooks_.find(current_category_) == hooks_.end()) {
+        return {};
+    }
     return hooks_.at(current_category_);
 }
 

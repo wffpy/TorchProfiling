@@ -5,6 +5,7 @@ pybind11_add_module(Hook init.cpp)
 target_include_directories(Hook PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
 target_link_libraries(Hook PRIVATE hook)
+target_link_libraries(Hook PRIVATE LocalHook)
 target_link_libraries(Hook PRIVATE CpuHook)
 target_link_libraries(Hook PRIVATE Util)
 target_link_libraries(Hook PRIVATE GpuHook)
@@ -14,12 +15,19 @@ target_link_libraries(Hook PRIVATE Dump)
 #     target_link_libraries(Hook PRIVATE capstone)
 # endif()
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i386|i686|AMD64")
+    set(IS_X86 TRUE)
+    message(STATUS "Detected x86 architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+else()
+    set(IS_X86 FALSE)
+    message(STATUS "Non-x86 architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 target_include_directories(Hook PUBLIC ${Python3_INCLUDE_DIRS})
 
 target_link_libraries(Hook PRIVATE ${Python3_LIBRARIES})
 
 if ((CUDA_DEV STREQUAL TRUE) AND CUDA_FOUND)
-    target_link_libraries(Hook PRIVATE LocalHook)
     target_link_libraries(Hook PRIVATE capstone)
     target_link_libraries(Hook PRIVATE ${CUDA_LIBRARIES})
     set (CUDA_LINK_PATH /usr/local/cuda/lib64/) 
